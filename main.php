@@ -888,7 +888,7 @@ class Full_Text_Search {
 		$found_rows = (int) $wpdb->get_var( 'SELECT FOUND_ROWS()' );
 
 		foreach ( $rows as $row ) {
-			$this->update_index_post( $post_ID, $row, $row->keywords );
+			$this->update_index_post( $row->ID, $row, $row->keywords );
 		}
 
 		if ( 0 < $found_rows ) {
