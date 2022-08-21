@@ -134,7 +134,7 @@ class Full_Text_Search {
 	 * @param string $input Search string.
 	 * @return string Normalized search string.
 	 */
-	private function normalize_search_string_from_mroonga( $input ) {
+	private function normalize_search_string_for_mroonga( $input ) {
 		$ws = preg_split( '//u', $input . ' ', -1, PREG_SPLIT_NO_EMPTY );
 		$in = false;
 		$w = '';
@@ -166,7 +166,7 @@ class Full_Text_Search {
 	 * @param string $input Search string.
 	 * @return string Normalized search string.
 	 */
-	private function normalize_search_string_from_innodb( $input ) {
+	private function normalize_search_string_for_innodb( $input ) {
 		$ws = preg_split( '//u', $input . ' ', -1, PREG_SPLIT_NO_EMPTY );
 		$in = false;
 		$or = false;
@@ -251,9 +251,9 @@ class Full_Text_Search {
 				}
 
 				if ( 'mroonga' === $this->options['db_engine'] ) {
-					$s = "*D+ " . $this->normalize_search_string_from_mroonga( $s );
+					$s = "*D+ " . $this->normalize_search_string_for_mroonga( $s );
 				} else {
-					$s = $this->normalize_search_string_from_innodb( $s );
+					$s = $this->normalize_search_string_for_innodb( $s );
 				}
 
 				$join .= $wpdb->prepare(
@@ -572,11 +572,11 @@ class Full_Text_Search {
 	public function get_default_options() {
 		return array( 
 			'plugin_version'    => FULL_TEXT_SEARCH_VERSION,
-			'db_type'           => '',			// '', 'mariadb' or 'mysql',
-			'db_engine'         => '',			// '', 'mroonga' or'innodb',
-			'sort_order'        => 'score',		// 'default' or 'score'.
-			'enable_mode'       => 'enable',	// 'disable', 'enable' or 'search'.
-			'enable_attachment' => 'enable',	// 'disable', 'enable' or 'filter'.
+			'db_type'           => '',          // '', 'mariadb' or 'mysql',
+			'db_engine'         => '',          // '', 'mroonga' or'innodb',
+			'sort_order'        => 'score',     // 'default' or 'score'.
+			'enable_mode'       => 'enable',    // 'disable', 'enable' or 'search'.
+			'enable_attachment' => 'enable',    // 'disable', 'enable' or 'filter'.
 			'enable_zip'        => false,
 			'enable_pdf'        => false,
 			'enable_word'       => false,
@@ -655,21 +655,23 @@ class Full_Text_Search {
 	 * @return string text string.
 	 */
 	public function get_text_from_pdf_file( $file, $newline = "\n" ) {
-		$text = '';
-
 		if ( ! isset( $this->pdfparser ) ) {
 			$config = new Smalot\PdfParser\Config();
 			$config->setRetainImageContent( false );
 			$this->pdfparser = new \Smalot\PdfParser\Parser( [], $config );
 		}
 		$pdffile = $this->pdfparser->parseFile( $file );
-		$pages = $pdffile->getPages();
-		foreach ( $pages as $page ) {
-			$text .= $page->getText() . $newline;
-		}
-		$text = trim( $text );
 
-		return $text;
+		$text = $pdffile->getText();
+
+		// Per page
+		//$text = '';
+		//$pages = $pdffile->getPages();
+		//foreach ( $pages as $page ) {
+		//	$text .= $page->getText() . $newline;
+		//}
+
+		return trim( $text );
 	}
 
 	/**

@@ -6,7 +6,7 @@ Description: Replaces site search with full-text search (Japanese support).
 Author: Xakuro
 Author URI: https://xakuro.com/
 License: GPLv2
-Version: 2.6.2
+Version: 2.7.0
 Text Domain: full-text-search
 Domain Path: /languages/
 */
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'FULL_TEXT_SEARCH_VERSION', '2.6.2' );
+define( 'FULL_TEXT_SEARCH_VERSION', '2.7.0' );
 
 require_once( __DIR__ . '/main.php' );
 
