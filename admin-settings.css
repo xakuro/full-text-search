@@ -1,0 +1,398 @@
+/*
+Full-Text Search Settings page.
+*/
+#enable-attachment ul {
+	margin-left: 1.5rem;
+}
+
+#enable-auto-text ul {
+	margin: 0;
+}
+
+#enable-attachment li,
+#enable-auto-text li {
+	line-height: 1.2;
+	margin-bottom: 0;
+}
+
+/*
+See WordPress full-text-search.css.
+*/
+.settings_page_full-text-search .update-nag{
+	margin-bottom: 20px;
+	margin-left: 22px;
+}
+.settings_page_full-text-search .notice{
+	margin: 5px 20px 15px 22px;
+}
+
+.settings_page_full-text-search #wpcontent {
+	padding-left: 0;
+}
+
+.full-text-search-settings-body h2 {
+	line-height: 1.4;
+}
+
+.full-text-search-settings-body h3 {
+	padding: 0;
+	font-weight: 400;
+}
+
+.full-text-search-settings-widget-title-section {
+	text-align: center;
+}
+
+.full-text-search-settings-progress-wrapper {
+	margin-bottom: 1rem;
+}
+
+.full-text-search-settings-progress {
+	display: inline-block;
+	height: 20px;
+	width: 20px;
+	margin: 0;
+	border-radius: 100%;
+	position: relative;
+	font-weight: 600;
+	font-size: 0.4rem;
+}
+
+.full-text-search-settings-progress-count {
+	position: absolute;
+	display: block;
+	height: 80px;
+	width: 80px;
+	left: 50%;
+	top: 50%;
+	margin-top: -40px;
+	margin-left: -40px;
+	border-radius: 100%;
+	line-height: 6.3;
+	font-size: 2em;
+}
+
+.loading .full-text-search-settings-progress svg #bar {
+	stroke-dashoffset: 0;
+	stroke: #c3c4c7;
+	animation: loadingPulse 3s infinite ease-in-out;
+}
+
+.full-text-search-settings-progress svg circle {
+	stroke-dashoffset: 0;
+	transition: stroke-dashoffset 1s linear;
+	stroke: #c3c4c7;
+	stroke-width: 2em;
+}
+
+.full-text-search-settings-progress svg #bar {
+	stroke-dashoffset: 565;
+	stroke: #d63638;
+}
+
+.green .full-text-search-settings-progress #bar {
+	stroke: #00a32a;
+}
+.green .full-text-search-settings-progress .full-text-search-settings-progress-label {
+	color: #00a32a;
+}
+
+.orange .full-text-search-settings-progress #bar {
+	stroke: #dba617;
+}
+.orange .full-text-search-settings-progress .full-text-search-settings-progress-label {
+	color: #dba617;
+}
+
+.full-text-search-settings-progress-label {
+	font-weight: 600;
+	line-height: 20px;
+	margin-left: 0.3rem;
+}
+
+@keyframes loadingPulse {
+	0% {
+		stroke: #c3c4c7;
+	}
+	50% {
+		stroke: #72aee6;
+	}
+	100% {
+		stroke: #c3c4c7;
+	}
+}
+
+.full-text-search-settings-tabs-wrapper {
+	/* IE 11 */
+	display: -ms-inline-grid;
+	-ms-grid-columns: 1fr 1fr 1fr 1fr;
+	vertical-align: top;
+	/* modern browsers */
+	display: inline-grid;
+	grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.full-text-search-settings-tabs-wrapper.tab-count-1 {
+	grid-template-columns: 1fr;
+}
+.full-text-search-settings-tabs-wrapper.tab-count-2 {
+	grid-template-columns: 1fr 1fr;
+}
+.full-text-search-settings-tabs-wrapper.tab-count-3 {
+	grid-template-columns: 1fr 1fr 1fr;
+}
+
+.full-text-search-settings-tab {
+	display: block; /* IE 11 */
+	text-decoration: none;
+	color: inherit;
+	padding: 0.5rem 1rem 1rem;
+	margin: 0 1rem;
+	transition: box-shadow 0.5s ease-in-out;
+}
+
+.full-text-search-settings-offscreen-nav-wrapper {
+	position: relative;
+	background: transparent;
+	border: none;
+}
+.full-text-search-settings-offscreen-nav-wrapper:focus .full-text-search-settings-offscreen-nav {
+	left: initial;
+}
+
+.full-text-search-settings-offscreen-nav {
+	display: none;
+	position: absolute;
+	padding-top: 10px;
+	right: 0;
+	top: 100%;
+	width: 13rem;
+}
+.full-text-search-settings-offscreen-nav-wrapper.visible .full-text-search-settings-offscreen-nav {
+	display: inline-block;
+}
+.full-text-search-settings-offscreen-nav:before {
+	position: absolute;
+	content: "";
+	width: 0;
+	height: 0;
+	border-style: solid;
+	border-width: 0 10px 5px 10px;
+	border-color: transparent transparent #ffffff transparent;
+	right: 20px;
+	top: 5px;
+}
+
+.full-text-search-settings-offscreen-nav .full-text-search-settings-tab {
+	background: #fff;
+	box-shadow: 0 2px 5px 0 rgba( 0, 0, 0, 0.75 );
+}
+
+.full-text-search-settings-offscreen-nav .full-text-search-settings-tab.active {
+	box-shadow: inset 3px 0 #3582c4;
+	font-weight: 600;
+}
+
+.full-text-search-settings-body {
+	max-width: 800px;
+	margin: 0 auto;
+}
+
+.full-text-search-settings-table td:first-child {
+	width: 30%;
+}
+
+.full-text-search-settings-table td {
+	width: 70%;
+}
+
+.full-text-search-settings-table ul,
+.full-text-search-settings-table ol {
+	margin: 0;
+}
+
+.full-text-search-settings-body li {
+	line-height: 1.5;
+}
+
+.full-text-search-settings-body .pass::before,
+.full-text-search-settings-body .good::before {
+	content: "\f147";
+	color: #00a32a;
+}
+
+.full-text-search-settings-body .warning::before {
+	content: "\f460";
+	color: #dba617;
+}
+
+.full-text-search-settings-body .info::before {
+	content: "\f348";
+	color: #72aee6;
+}
+
+.full-text-search-settings-body .fail::before,
+.full-text-search-settings-body .error::before {
+	content: "\f335";
+	color: #d63638;
+}
+
+.site-status-has-issues.hide {
+	display: none;
+}
+
+.full-text-search-settings-view-more {
+	text-align: center;
+}
+
+.full-text-search-settings-issues-wrapper:first-of-type {
+	margin-top: 3rem;
+}
+
+.full-text-search-settings-issues-wrapper {
+	margin-bottom: 3rem;
+	margin-top: 2rem;
+}
+
+.wp-core-ui .button.full-text-search-settings-view-passed {
+	position: relative;
+	padding-right: 40px;
+	padding-left: 20px;
+}
+
+/* Better position for the WordPress admin notices and update nag. */
+.full-text-search-settings .notice {
+	margin: 5px 20px 15px 22px;
+}
+
+.full-text-search-settings .update-nag {
+	margin-bottom: 20px;
+	margin-left: 22px;
+}
+
+.full-text-search-settings-wp-paths-sizes.spinner {
+	visibility: visible;
+	float: none;
+	margin: 0 4px;
+	flex-shrink: 0;
+}
+
+@media screen and (max-width: 782px) {
+
+	.full-text-search-settings-issues-wrapper .full-text-search-settings-accordion-trigger {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.full-text-search-settings-accordion-trigger .badge {
+		margin: 1em 0 0;
+	}
+
+	.full-text-search-settings-table {
+		table-layout: fixed;
+	}
+
+	.full-text-search-settings-table td {
+		box-sizing: border-box;
+		display: block;
+		width: 100%;
+		word-wrap: break-word;
+	}
+
+	.full-text-search-settings-table td:first-child {
+		width: 100%;
+		padding-bottom: 0;
+		font-weight: 600;
+	}
+}
+
+/*
+See WordPress edit.css.
+*/
+/* General */
+.full-text-search-settings #wpcontent,
+.full-text-search-settings.auto-fold #wpcontent {
+	padding-left: 0;
+}
+
+/* Emulates .wrap h1 styling */
+.full-text-search-settings-header h1 {
+	display: inline-block;
+	font-weight: 600;
+	margin: 0 0.8rem 1rem;
+	font-size: 23px;
+	padding: 9px 0 4px 0;
+	line-height: 1.3;
+}
+
+/* Header */
+.full-text-search-settings-header {
+	text-align: center;
+	margin: 0 0 1rem;
+	background: #fff;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.full-text-search-settings-title-section {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	clear: both;
+	padding-top: 8px;
+}
+
+.full-text-search-settings-tabs-wrapper {
+	/* IE 11 */
+	display: -ms-inline-grid;
+	-ms-grid-columns: 1fr 1fr;
+	vertical-align: top;
+	/* modern browsers */
+	display: inline-grid;
+	grid-template-columns: 1fr 1fr;
+}
+
+.full-text-search-settings-tab {
+	display: block; /* IE 11 */
+	text-decoration: none;
+	color: inherit;
+	padding: 0.5rem 1rem 1rem;
+	margin: 0 1rem;
+	transition: box-shadow 0.5s ease-in-out;
+}
+
+.full-text-search-settings-tab:nth-child(1) {
+	-ms-grid-column: 1; /* IE 11 */
+}
+
+.full-text-search-settings-tab:nth-child(2) {
+	-ms-grid-column: 2; /* IE 11 */
+}
+
+.full-text-search-settings-tab:focus {
+	color: #1d2327;
+	outline: 1px solid #787c82;
+	box-shadow: none;
+}
+
+.full-text-search-settings-tab.active {
+	box-shadow: inset 0 -3px #3582c4;
+	font-weight: 600;
+}
+
+/* Body */
+.full-text-search-settings-body {
+	max-width: 800px;
+	margin: 0 auto;
+}
+
+.hr-separator {
+	margin-top: 20px;
+	margin-bottom: 15px;
+}
+
+@media only screen and (max-width: 1004px) {
+	.full-text-search-settings-body {
+		margin: 0 22px;
+		width: auto;
+	}
+}
