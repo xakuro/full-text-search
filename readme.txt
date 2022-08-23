@@ -55,7 +55,7 @@ Mroonga engine is strongly recommended. InnoDB engine performs significantly wor
 = 2.7.2 =
 
 * Fixed a bug in search other than the search page.
-* Refactored the code.
+* Refactored code.
 
 = 2.7.1 =
 
