@@ -338,11 +338,13 @@ class Full_Text_Search {
 	 *
 	 * @since 2.6.0
 	 *
-	 * @param int     $post_ID Post ID.
-	 * @param WP_Post $post    Post object.
+	 * @param int     $post_ID  Post ID.
+	 * @param WP_Post $post     Post object.
+	 * @param string  $keywords Keywords (Search text).
+	 * @param bool    $update   Whether this is an existing post being updated.
 	 * @return void
 	 */
-	private function update_index_post( $post_ID, $post, $keywords = null ) {
+	private function update_index_post( $post_ID, $post, $keywords, $updated = false ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
@@ -350,6 +352,7 @@ class Full_Text_Search {
 		if ( null === $keywords ) {
 			$keywords = get_post_meta( $post_ID, Full_Text_Search::CUSTOM_FIELD_NAME, true );
 		}
+
 		$status = 0;
 
 		if ( 'attachment' == $post->post_type && empty( $keywords ) && ! $updated ) {
@@ -468,7 +471,7 @@ class Full_Text_Search {
 	 */
 	public function update_post( $post_ID, $post, $update ) {
 		if ( ! in_array( $post->post_type, array( 'revision', 'custom_css', 'customize_changeset' ) ) ) {
-			$this->update_index_post( $post_ID, $post );
+			$this->update_index_post( $post_ID, $post, null, $update );
 		}
 	}
 
@@ -568,7 +571,8 @@ class Full_Text_Search {
 
 		$table_engine = $wpdb->get_var( $wpdb->prepare( 'SELECT ENGINE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME=%s', $table_name ) );
 		if ( null === $table_engine ) {
-			$result = $wpdb->query( "CREATE TABLE `{$table_name}` (
+			$result = $wpdb->query(
+				"CREATE TABLE `{$table_name}` (
 				ID bigint(20) unsigned NOT NULL auto_increment,
 				post_type varchar(20) NOT NULL default 'post',
 				post_status varchar(20) NOT NULL default 'publish',
