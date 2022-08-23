@@ -104,7 +104,7 @@ class Full_Text_Search {
 			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
 			if (
 				( 'enable' === $enable_mode ) ||
-				( 'search' === $enable_mode && $query->is_main_query() && $query->is_search() && ! is_admin() )
+				( 'search' === $enable_mode && $query->is_main_query() && $query->is_search && ! $query->is_admin )
 			) {
 				$search = '';
 			}
@@ -121,7 +121,7 @@ class Full_Text_Search {
 	 * @return void.
 	 */
 	public function pre_get_posts( $query ) {
-		if ( $query->is_search ) {
+		if ( $query->is_search && ! $query->is_admin ) {
 			$query->set( 'post_status', array( 'publish', 'private', 'inherit' ) );
 		}
 	}
@@ -237,18 +237,16 @@ class Full_Text_Search {
 			$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
 
 			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
+			$s = trim( sanitize_text_field( $query->get( 's', '' ) ) );
 			if (
-				( 'enable' === $enable_mode ) ||
-				( 'search' === $enable_mode && $query->is_main_query() && $query->is_search() && ! is_admin() )
+				( 'enable' === $enable_mode || ( 'search' === $enable_mode && is_search() ) )
+				&& ! empty( $s )
 			) {
 				$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
 
-				$s = trim( sanitize_text_field( $query->get( 's', '' ) ) );
 				$s = str_replace( array( '`', ';' ), '', $s );
 
-				if ( '' === $s ) {
-					return $join;
-				}
+				//if ( '' === $s ) return $join;
 
 				if ( 'mroonga' === $this->options['db_engine'] ) {
 					$s = "*D+ " . $this->normalize_search_string_for_mroonga( $s );
@@ -279,56 +277,8 @@ class Full_Text_Search {
 	 * @return string WHERE clause.
 	 */
 	public function posts_where( $where, $query ) {
-		if ( $query->is_search ) {
+		if ( $query->is_search && ! $query->is_admin ) {
 			global $wpdb;
-
-			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
-			if (
-				( 'enable' === $enable_mode ) ||
-				( 'search' === $enable_mode && $query->is_main_query() && $query->is_search() && ! is_admin() )
-			) {
-				$where .= " AND ({$wpdb->posts}.post_status = 'publish' OR {$wpdb->posts}.post_status = 'inherit'";
-				if ( is_user_logged_in() ) {
-					$post_type = $query->query_vars['post_type'];
-
-					if ( is_array( $post_type ) && count( $post_type ) > 1 ) {
-						$post_type_cap = 'multiple_post_type';
-					} else {
-						if ( is_array( $post_type ) ) {
-							$post_type = reset( $post_type );
-						}
-						$post_type_object = get_post_type_object( $post_type );
-						if ( empty( $post_type_object ) ) {
-							$post_type_cap = $post_type;
-						}
-					}
-
-					if ( 'any' === $post_type ) {
-					} elseif ( ! empty( $post_type ) && is_array( $post_type ) ) {
-					} elseif ( ! empty( $post_type ) ) {
-						$post_type_object = get_post_type_object( $post_type );
-					} elseif ( $query->is_attachment ) {
-						$post_type_object = get_post_type_object( 'attachment' );
-					} elseif ( $query->is_page ) {
-						$post_type_object = get_post_type_object( 'page' );
-					} else {
-						$post_type_object = get_post_type_object( 'post' );
-					}
-			
-					if ( ! empty( $post_type_object ) ) {
-						$read_private_cap = $post_type_object->cap->read_private_posts;
-					} else {
-						$read_private_cap = 'read_private_' . $post_type_cap . 's';
-					}
-
-					$user_id = get_current_user_id();
-					$private_states = get_post_stati( array( 'private' => true ) );
-					foreach ( (array) $private_states as $state ) {
-						$where .= current_user_can( $read_private_cap ) ? " OR {$wpdb->posts}.post_status = '$state'" : " OR {$wpdb->posts}.post_author = $user_id AND {$wpdb->posts}.post_status = '$state'";
-					}
-				}
-				$where .= ')';
-			}
 
 			if ( isset( $this->options['enable_attachment'] ) && 'filter' === $this->options['enable_attachment'] ) {
 				$post_mime_types = array();
@@ -368,11 +318,12 @@ class Full_Text_Search {
 	 * @return string The ORDER BY clause of the query.
 	 */
 	public function posts_orderby( $orderby, $query ) {
-		if ( $query->is_search && ! empty( trim( $query->query_vars['s'] ) ) ) {
+		if ( $query->is_search ) {
 			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
+			$s = trim( sanitize_text_field( $query->get( 's', '' ) ) );
 			if (
-				( 'enable' === $enable_mode ) ||
-				( 'search' === $enable_mode && $query->is_main_query() && $query->is_search() && ! is_admin() )
+				( 'enable' === $enable_mode || ( 'search' === $enable_mode && is_search() ) )
+				&& ! empty( $s )
 			) {
 				if ( ! isset( $this->options['sort_order'] ) || 'score' === $this->options['sort_order'] ) {
 					$orderby = 'score DESC';
@@ -516,8 +467,7 @@ class Full_Text_Search {
 	 * @return void
 	 */
 	public function update_post( $post_ID, $post, $update ) {
-		$post_types = get_post_types( array( 'exclude_from_search' => false ) );
-		if ( in_array( $post->post_type, $post_types ) && in_array( $post->post_status, array( 'publish', 'private', 'inherit', 'trash' ) ) ) {
+		if ( ! in_array( $post->post_type, array( 'revision', 'custom_css', 'customize_changeset' ) ) ) {
 			$this->update_index_post( $post_ID, $post );
 		}
 	}
@@ -661,16 +611,7 @@ class Full_Text_Search {
 			$this->pdfparser = new \Smalot\PdfParser\Parser( [], $config );
 		}
 		$pdffile = $this->pdfparser->parseFile( $file );
-
 		$text = $pdffile->getText();
-
-		// Per page
-		//$text = '';
-		//$pages = $pdffile->getPages();
-		//foreach ( $pages as $page ) {
-		//	$text .= $page->getText() . $newline;
-		//}
-
 		return trim( $text );
 	}
 
@@ -850,10 +791,7 @@ class Full_Text_Search {
 
 		$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
 
-		$post_types = get_post_types( array( 'exclude_from_search' => false ) );
-		$sql_posts = "'" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "'";
-
-		$posts_count = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->posts} WHERE post_type IN ({$sql_posts}) AND post_status IN ('private','publish','inherit','trash');" );
+		$posts_count = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->posts} WHERE post_type NOT IN ('revision','custom_css','customize_changeset');" );
 
 		/**
 		 * Maximum number of records to process at one time.
@@ -873,7 +811,7 @@ class Full_Text_Search {
 		/*
 		 * Delete
 		 */
-		$wpdb->query( "DELETE FROM {$table_name} WHERE ID NOT IN (SELECT ID FROM {$wpdb->posts} WHERE post_type IN ({$sql_posts}) AND post_status IN ('publish','private','inherit','trash'))" );
+		$wpdb->query( "DELETE FROM {$table_name} WHERE ID NOT IN (SELECT ID FROM {$wpdb->posts} WHERE post_type NOT IN ('revision','custom_css','customize_changeset'))" );
 
 		/*
 		 * Update
@@ -882,7 +820,7 @@ class Full_Text_Search {
 			"SELECT SQL_CALC_FOUND_ROWS t1.ID, t1.post_type, t1.post_mime_type, t1.post_status, t1.post_password, t1.post_modified, t1.post_title, t1.post_content, t1.post_excerpt, m.meta_value AS keywords " .
 			"FROM {$wpdb->posts} AS t1 LEFT OUTER JOIN {$table_name} AS t2 ON (t1.ID = t2.ID) " .
 			"LEFT JOIN {$wpdb->postmeta} AS m ON t1.ID = m.post_id AND m.meta_key = '" . Full_Text_Search::CUSTOM_FIELD_NAME . "' " . 
-			"WHERE (t2.ID IS NULL OR t1.post_modified > t2.post_modified) AND t1.post_type IN ({$sql_posts}) AND t1.post_status IN ('private','publish','inherit','trash') LIMIT {$limit};"
+			"WHERE (t2.ID IS NULL OR t1.post_modified > t2.post_modified) AND t1.post_type NOT IN ('revision','custom_css','customize_changeset') LIMIT {$limit};"
 		);
 
 		$found_rows = (int) $wpdb->get_var( 'SELECT FOUND_ROWS()' );
@@ -955,7 +893,13 @@ class Full_Text_Search {
 	 * @return string The SELECT clause of the query.
 	 */
 	public function posts_fields( $fields, $query ) {
-		if ( is_search() && $query->is_search && ! empty( $query->get( 's', '' ) ) ) {
+		if (
+			( isset( $this->options['enable_mode'] ) || 'disable' !== isset( $this->options['enable_mode'] ) )
+			&& $query->is_main_query()
+			&& $query->is_search
+			&& ! $query->is_admin
+			&& ! empty( $query->get( 's', '' ) )
+		) {
 			$fields .= ',score AS search_score';
 		}
 		return $fields;
@@ -1020,33 +964,10 @@ class Full_Text_Search {
 			$options['db_engine'] = $engine;
 			add_option( 'full_text_search_options', $options );
 		} else {
-			// Less than 2.0.0
-			if ( version_compare( $options['plugin_version'], '2.0.0', '<' ) ) {
+			// Less than 2.7.2
+			if ( version_compare( $options['plugin_version'], '2.7.2', '<' ) ) {
 				$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
 				$wpdb->query( "DROP TABLE IF EXISTS {$table_name};" );
-
-				if ( isset( $options['enable_pdf_only'] ) ) {
-					$options['enable_pdf'] = $options['enable_pdf_only'];
-					unset( $options['enable_pdf_only'] );
-				}
-			}
-
-			// Less than 2.1.0
-			if ( version_compare( $options['plugin_version'], '2.1.0', '<' ) ) {
-				if ( isset( $options['enable_attachment'] ) && $options['enable_attachment'] ) {
-					$options['enable_attachment'] = ( $options['enable_pdf'] || $options['enable_word'] ) ? 'filter' : 'disable';
-				} else {
-					$options['enable_attachment'] = 'enable';
-				}
-
-				if ( isset( $options['enable_pdf_auto_text'] ) ) {
-					$options['auto_pdf'] = $options['enable_pdf_auto_text'];
-					unset( $options['enable_pdf_auto_text'] );
-				}
-				if ( isset( $options['enable_doc_auto_text'] ) ) {
-					$options['auto_word'] = $options['enable_doc_auto_text'];
-					unset( $options['enable_doc_auto_text'] );
-				}
 			}
 
 			$options['plugin_version'] = FULL_TEXT_SEARCH_VERSION;
