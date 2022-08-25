@@ -52,8 +52,7 @@ class Full_Text_Search {
 		add_action( 'attachment_updated', array( $this, 'update_attachment' ), 10, 3 );
 		add_action( 'deleted_post', array( $this, 'delete_post' ), 100, 1 );
 		add_filter( 'posts_search', array( $this, 'posts_search' ), 10, 2);
-		add_filter( 'posts_join', array( $this, 'posts_join' ), 10, 2 );
-		add_filter( 'posts_orderby', array( $this, 'posts_orderby' ), 10, 2 );
+		add_filter( 'posts_clauses_request', array( $this, 'posts_clauses_request' ), 99999, 2 );
 
 		if ( isset( $this->options['enable_attachment'] ) && 'disable' !== $this->options['enable_attachment'] ) {
 			add_action( 'pre_get_posts', array( $this, 'pre_get_posts' ) );
@@ -69,7 +68,6 @@ class Full_Text_Search {
 
 		if ( isset( $this->options['display_score'] ) && $this->options['display_score'] ) {
 			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
-			add_filter( 'posts_fields', array( $this, 'posts_fields' ), 10, 2 );
 			add_filter( 'get_the_excerpt', array( $this, 'get_the_excerpt' ), 10, 2 );
 		}
 	}
@@ -218,35 +216,53 @@ class Full_Text_Search {
 				}
 			}
 		}
-		return implode( ' ', $a );;
+		return implode( ' ', $a );
 	}
 
 	/**
-	 * Filters the JOIN clause of the query.
+	 * Filters all query clauses at once, for convenience.
 	 *
-	 * @since 2.2.2
+	 * @since 2.8.0
 	 *
-	 * @param string   $join  The JOIN clause of the query.
-	 * @param WP_Query $query The WP_Query instance (passed by reference).
-	 * @return string JOIN clause.
+	 * @param string[] $clauses Associative array of the clauses for the query.
+	 * @param WP_Query $query   The WP_Query instance (passed by reference).
+	 * @return string[].
 	 */
-	public function posts_join( $join, $query ) {
+	public function posts_clauses_request( $clauses, $query ) {
 		if ( $query->is_search ) {
-			global $wpdb;
-
-			$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
-
 			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
 			$s = trim( sanitize_text_field( $query->get( 's', '' ) ) );
-			if (
-				( 'enable' === $enable_mode || ( 'search' === $enable_mode && is_search() ) )
-				&& ! empty( $s )
-			) {
+
+			if ( ( 'enable' === $enable_mode || ( 'search' === $enable_mode && is_search() ) ) && ! empty( $s ) ) {
+				global $wpdb;
+
 				$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
 
-				$s = str_replace( array( '`', ';' ), '', $s );
+				$q = $query->fill_query_vars( $query->query_vars );
+				$post_type = ( ! isset( $q['post_type'] ) ) ? 'any' : $q['post_type'];
 
-				//if ( '' === $s ) return $join;
+				if ( 'any' === $post_type ) {
+					$in_search_post_types = get_post_types( array( 'exclude_from_search' => false ) );
+					if ( empty( $in_search_post_types ) ) {
+						$post_type_where = ' AND 1=0 ';
+					} else {
+						$post_type_where = " AND post_type IN ('" . implode( "', '", array_map( 'esc_sql', $in_search_post_types ) ) . "')";
+					}
+				} elseif ( ! empty( $post_type ) && is_array( $post_type ) ) {
+					$post_type_where = " AND post_type IN ('" . implode( "', '", esc_sql( $post_type ) ) . "')";
+				} elseif ( ! empty( $post_type ) ) {
+					$post_type_where = $wpdb->prepare( " AND post_type = %s", $post_type );
+				} elseif ( $query->is_attachment ) {
+					$post_type_where = " AND post_type = 'attachment'";
+				} elseif ( $query->is_page ) {
+					$post_type_where = " AND post_type = 'page'";
+				} else {
+					$post_type_where = " AND post_type = 'post'";
+				}
+
+				$join = isset( $clauses['join'] ) ? $clauses['join'] : '';
+				$fields = isset( $clauses['fields'] ) ? $clauses['fields'] : '';
+				$orderby = isset( $clauses['orderby'] ) ? $clauses['orderby'] : '';
 
 				if ( 'mroonga' === $this->options['db_engine'] ) {
 					$s = "*D+ " . $this->normalize_search_string_for_mroonga( $s );
@@ -256,15 +272,27 @@ class Full_Text_Search {
 
 				$join .= $wpdb->prepare(
 					" INNER JOIN (" .
-					"SELECT ID, MATCH(keywords, post_title, post_content, post_excerpt) AGAINST(%s IN BOOLEAN MODE) AS score " .
-					"FROM {$table_name} WHERE MATCH(keywords, post_title, post_content, post_excerpt) AGAINST(%s IN BOOLEAN MODE)" .
+					"SELECT ID, post_type, MATCH(keywords, post_title, post_content, post_excerpt) AGAINST(%s IN BOOLEAN MODE) AS score " .
+					"FROM {$table_name} " .
+					"WHERE MATCH(keywords, post_title, post_content, post_excerpt) AGAINST(%s IN BOOLEAN MODE)" .
+					$post_type_where .
 					") matched_posts ON matched_posts.ID = {$wpdb->posts}.ID",
 					$s, $s
 				);
+
+				$fields .= ',score AS search_score';
+
+				if ( ! isset( $this->options['sort_order'] ) || 'score' === $this->options['sort_order'] ) {
+					$orderby = 'score DESC';
+				}
+
+				$clauses['join'] = $join;
+				$clauses['fields'] = $fields;
+				$clauses['orderby'] = $orderby;
 			}
 		}
 
-		return $join;
+		return $clauses;
 	}
 
 	/**
@@ -306,31 +334,6 @@ class Full_Text_Search {
 			}
 		}
 		return $where;
-	}
-
-	/**
-	 * Filters the ORDER BY clause of the query.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param string   $orderby The ORDER BY clause of the query.
-	 * @param WP_Query $query   The WP_Query instance (passed by reference).
-	 * @return string The ORDER BY clause of the query.
-	 */
-	public function posts_orderby( $orderby, $query ) {
-		if ( $query->is_search ) {
-			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
-			$s = trim( sanitize_text_field( $query->get( 's', '' ) ) );
-			if (
-				( 'enable' === $enable_mode || ( 'search' === $enable_mode && is_search() ) )
-				&& ! empty( $s )
-			) {
-				if ( ! isset( $this->options['sort_order'] ) || 'score' === $this->options['sort_order'] ) {
-					$orderby = 'score DESC';
-				}
-			}
-		}
-		return $orderby;
 	}
 
 	/**
@@ -577,14 +580,15 @@ class Full_Text_Search {
 				post_type varchar(20) NOT NULL default 'post',
 				post_status varchar(20) NOT NULL default 'publish',
 				post_password varchar(255) NOT NULL default '',
-				post_modified datetime NOT NULL default '0000-00-00 00:00:00',
+				post_modified datetime NOT NULL default CURRENT_TIMESTAMP,
 				post_title text NOT NULL,
 				post_content longtext NOT NULL,
 				post_excerpt text NOT NULL,
 				keywords longtext NOT NULL,
 				status tinyint(1) NOT NULL default '0',
 				PRIMARY KEY (ID),
-				{$db_index}
+				{$db_index},
+				KEY post_type (post_type)
 				) ENGINE={$db_engine} {$charset_collate};"
 			);
 		} else if ( $db_engine != strtolower( $table_engine ) ) {
@@ -616,6 +620,9 @@ class Full_Text_Search {
 		}
 		$pdffile = $this->pdfparser->parseFile( $file );
 		$text = $pdffile->getText();
+
+		$text = str_replace( array( "\r\n", "\r", "\n", "\t", ' ', '　' ), '', $text );
+
 		return trim( $text );
 	}
 
@@ -888,28 +895,6 @@ class Full_Text_Search {
 	}
 
 	/**
-	 * Filters the SELECT clause of the query.
-	 *
-	 * @since 2.4.0
-	 *
-	 * @param string   $fields The SELECT clause of the query.
-	 * @param WP_Query $query  The WP_Query instance (passed by reference).
-	 * @return string The SELECT clause of the query.
-	 */
-	public function posts_fields( $fields, $query ) {
-		if (
-			( isset( $this->options['enable_mode'] ) || 'disable' !== isset( $this->options['enable_mode'] ) )
-			&& $query->is_main_query()
-			&& $query->is_search
-			&& ! $query->is_admin
-			&& ! empty( $query->get( 's', '' ) )
-		) {
-			$fields .= ',score AS search_score';
-		}
-		return $fields;
-	}
-
-	/**
 	 * Filters the post excerpt.
 	 *
 	 * @since 2.4.0
@@ -968,8 +953,8 @@ class Full_Text_Search {
 			$options['db_engine'] = $engine;
 			add_option( 'full_text_search_options', $options );
 		} else {
-			// Less than 2.7.2
-			if ( version_compare( $options['plugin_version'], '2.7.2', '<' ) ) {
+			// Less than 2.8.0
+			if ( version_compare( $options['plugin_version'], '2.8.0', '<' ) ) {
 				$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
 				$wpdb->query( "DROP TABLE IF EXISTS {$table_name};" );
 			}
