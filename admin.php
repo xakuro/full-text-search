@@ -226,15 +226,16 @@ class Full_Text_Search_Admin {
 		<hr class="wp-header-end">
 		<?php
 
-		if ( isset( $_POST['full-text-search-clear-attachment-text'] ) ) {
+		if ( isset( $_POST['full-text-search-delete-attachment-text'] ) ) {
 			check_admin_referer( 'full-text-search-settings' );
 
-			if ( ! empty( $_POST['full-text-search-clear-attachment-text'] ) ) {
+			if ( ! empty( $_POST['full-text-search-delete-attachment-text'] ) ) {
 				$result = true;
 
 				$ids = get_posts( array( 'post_type' => 'attachment', 'posts_per_page' => -1, 'post_status' => 'any', 'fields' => 'ids' ) );
 				if ( $ids ) {
-					$result = $wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = %s AND post_id IN(" . implode( ',', $ids ) . ')',
+					$result = $wpdb->query( $wpdb->prepare(
+						"DELETE FROM $wpdb->postmeta WHERE meta_key = %s AND post_id IN (" . implode( ',', $ids ) . ')',
 						Full_Text_Search::CUSTOM_FIELD_NAME
 					) );
 				}
@@ -244,9 +245,9 @@ class Full_Text_Search_Admin {
 				}
 
 				if ( false === $result ) {
-					echo '<div class="notice notice-error"><p>' . __( '添付ファイルの検索テキストの削除に失敗しました。', 'full-text-search' ) . '</p></div>';
+					echo '<div class="notice notice-error is-dismissible"><p><strong>' . __( 'Failed to delete search text.', 'full-text-search' ) . '</strong></p></div>';
 				} else {
-					echo '<div class="notice notice-success"><p>' . __( '添付ファイルの検索テキストを削除しました。', 'full-text-search' ) . '</p></div>';
+					echo '<div class="notice notice-success is-dismissible"><p><strong>' . __( 'Deleted search text.', 'full-text-search' ) . '</strong></p></div>';
 				}
 			}
 		}
@@ -289,13 +290,20 @@ class Full_Text_Search_Admin {
 
 			wp_nonce_field( 'full-text-search-settings' );
 
-			echo '<p><input type="submit" class="button button-primary" name="full-text-search-index-sync" id="full-text-search-index-sync" value="' . __( 'Resync', 'full-text-search' ) . '"' .  ( $disabled ? ' disabled=""' : '' ) . '/></p>';
+			echo '<p><input type="submit" class="button button-primary" name="full-text-search-index-sync" id="full-text-search-index-sync" value="' .
+				__( 'Resync', 'full-text-search' ) . '"' .  ( $disabled ? ' disabled=""' : '' ) . '/></p>';
 
-			echo '<p><label for="regenerate-check"><input name="regenerate-check" type="checkbox" id="regenerate-check" value="1" onchange="document.getElementById(\'full-text-search-index-regenerate\').disabled = !this.checked;">' . __( 'Delete all indexes and regenerate.', 'full-text-search' ) . '</label>';
-			echo '<p><input type="submit" class="button button-secondary" name="full-text-search-index-regenerate" id="full-text-search-index-regenerate" value="' . __( 'Regeneration', 'full-text-search' ) . '" disabled /></p>';
+			echo '<p><label for="regenerate-check"><input name="regenerate-check" type="checkbox" id="regenerate-check" value="1" onchange="document.getElementById(\'full-text-search-index-regenerate\').disabled = !this.checked;">' .
+				__( 'Delete all indexes and regenerate.', 'full-text-search' ) . '</label>';
+			echo '<p><input type="submit" class="button button-secondary" name="full-text-search-index-regenerate" id="full-text-search-index-regenerate" value="' .
+				__( 'Regeneration', 'full-text-search' ) . '" disabled /></p>';
 
-			echo '<p><label for="clear-attachment-text-check"><input name="clear-attachment-text-check" type="checkbox" id="clear-attachment-text-check" value="1" onchange="document.getElementById(\'full-text-search-clear-attachment-text\').disabled = !this.checked;">' . __( 'すべての添付ファイルの検索テキストを削除します。', 'full-text-search' ) . '</label>';
-			echo '<p><input type="submit" class="button button-danger" name="full-text-search-clear-attachment-text" id="full-text-search-clear-attachment-text" value="' . __( '削除', 'full-text-search' ) . '" disabled onclick="return confirm( \'' . __( 'すべての添付ファイルの検索テキストが削除されます。\nこの操作は取り消すことができません。\n中止するには「キャンセル」を、削除するには「OK」をクリックしてください。', 'full-text-search' ) . '\' );" /></p>';
+			echo '<p><label for="delete-attachment-text-check"><input name="delete-attachment-text-check" type="checkbox" id="delete-attachment-text-check" value="1" onchange="document.getElementById(\'full-text-search-delete-attachment-text\').disabled = !this.checked;">' .
+				__( 'Delete search text of all attachments.', 'full-text-search' ) . '</label>';
+			printf( '<p><input type="submit" class="button button-danger" name="full-text-search-delete-attachment-text" id="full-text-search-delete-attachment-text" value="%s" disabled onclick="return confirm( \'%s\' );" /></p>',
+				esc_attr( __( 'Delete', 'full-text-search' ) ),
+				esc_js( __( "The search text of all attachments will be deleted.\nThis action cannot be undone.\nClick 'Cancel' to go back, 'OK' to confirm the delete.", 'full-text-search' ) )
+			);
 
 			echo '</form>';
 
