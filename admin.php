@@ -24,7 +24,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 1.0.0
 	 */
-	function setup() {
+	public function setup() {
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ) );
@@ -41,7 +41,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 1.0.0
 	 */
-	function admin_enqueue_scripts( $hook_suffix ) {
+	public function admin_enqueue_scripts( $hook_suffix ) {
 		if ( $this->settings_page_id === $hook_suffix ) {
 			wp_enqueue_style( 'full-text-search-settings', plugins_url( '/admin-settings.css', __FILE__ ), false, FULL_TEXT_SEARCH_VERSION );
 			wp_enqueue_script( 'full-text-search-settings', plugins_url( '/admin-settings.js', __FILE__ ), array( 'jquery' ), FULL_TEXT_SEARCH_VERSION, false );
@@ -82,7 +82,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 1.0.0
 	 */
-	function admin_menu() {
+	public function admin_menu() {
 		$this->settings_page_id = add_options_page(
 			__( 'Full-Text Search Settings', 'full-text-search' ),
 			_x( 'Full-Text Search', 'setting', 'full-text-search' ),
@@ -99,7 +99,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 2.3.0
 	 */
-	function add_settings_page_tabs() {
+	public function add_settings_page_tabs() {
 		$screen = get_current_screen();
 		$screen->add_help_tab( array(
 			'id' => 'overview',
@@ -154,7 +154,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 1.0.0
 	 */
-	function settings_page() {
+	public function settings_page() {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
@@ -226,6 +226,31 @@ class Full_Text_Search_Admin {
 		<hr class="wp-header-end">
 		<?php
 
+		if ( isset( $_POST['full-text-search-clear-attachment-text'] ) ) {
+			check_admin_referer( 'full-text-search-settings' );
+
+			if ( ! empty( $_POST['full-text-search-clear-attachment-text'] ) ) {
+				$result = true;
+
+				$ids = get_posts( array( 'post_type' => 'attachment', 'posts_per_page' => -1, 'post_status' => 'any', 'fields' => 'ids' ) );
+				if ( $ids ) {
+					$result = $wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = %s AND post_id IN(" . implode( ',', $ids ) . ')',
+						Full_Text_Search::CUSTOM_FIELD_NAME
+					) );
+				}
+
+				if ( false !== $result ) {
+					$result = $wpdb->query( "UPDATE $table_name SET keywords = NULL WHERE post_type = 'attachment';" );
+				}
+
+				if ( false === $result ) {
+					echo '<div class="notice notice-error"><p>' . __( '添付ファイルの検索テキストの削除に失敗しました。', 'full-text-search' ) . '</p></div>';
+				} else {
+					echo '<div class="notice notice-success"><p>' . __( '添付ファイルの検索テキストを削除しました。', 'full-text-search' ) . '</p></div>';
+				}
+			}
+		}
+
 		echo '<div class="notice notice-error hide-if-js"><p>' . __( 'The Full-Text Search Settings require JavaScript.', 'full-text-search' ) . '</p></div>';
 		echo '<div class="full-text-search-settings-body hide-if-no-js">';
 	
@@ -265,8 +290,12 @@ class Full_Text_Search_Admin {
 			wp_nonce_field( 'full-text-search-settings' );
 
 			echo '<p><input type="submit" class="button button-primary" name="full-text-search-index-sync" id="full-text-search-index-sync" value="' . __( 'Resync', 'full-text-search' ) . '"' .  ( $disabled ? ' disabled=""' : '' ) . '/></p>';
+
 			echo '<p><label for="regenerate-check"><input name="regenerate-check" type="checkbox" id="regenerate-check" value="1" onchange="document.getElementById(\'full-text-search-index-regenerate\').disabled = !this.checked;">' . __( 'Delete all indexes and regenerate.', 'full-text-search' ) . '</label>';
 			echo '<p><input type="submit" class="button button-secondary" name="full-text-search-index-regenerate" id="full-text-search-index-regenerate" value="' . __( 'Regeneration', 'full-text-search' ) . '" disabled /></p>';
+
+			echo '<p><label for="clear-attachment-text-check"><input name="clear-attachment-text-check" type="checkbox" id="clear-attachment-text-check" value="1" onchange="document.getElementById(\'full-text-search-clear-attachment-text\').disabled = !this.checked;">' . __( 'すべての添付ファイルの検索テキストを削除します。', 'full-text-search' ) . '</label>';
+			echo '<p><input type="submit" class="button button-danger" name="full-text-search-clear-attachment-text" id="full-text-search-clear-attachment-text" value="' . __( '削除', 'full-text-search' ) . '" disabled onclick="return confirm( \'' . __( 'すべての添付ファイルの検索テキストが削除されます。\nこの操作は取り消すことができません。\n中止するには「キャンセル」を、削除するには「OK」をクリックしてください。', 'full-text-search' ) . '\' );" /></p>';
 
 			echo '</form>';
 
@@ -285,7 +314,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 1.0.0
 	 */
-	function register_settings() {
+	public function register_settings() {
 		register_setting( 'full_text_search_group', 'full_text_search_options', array( $this, 'sanitize' ) );
 
 		add_settings_section( 'full_text_search_search_section', __( 'Full-Text Search Settings', 'full-text-search' ), '__return_empty_string', 'full_text_search_group' );
@@ -301,7 +330,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 1.3.0
 	 */
-	function field_enable_mode() {
+	public function field_enable_mode() {
 		$enable_mode = isset( $this->parent->options['enable_mode'] ) ? $this->parent->options['enable_mode'] : 'enable';
 
 		echo '<select id="field_enable_mode" name="full_text_search_options[enable_mode]">';
@@ -316,7 +345,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 2.3.0
 	 */
-	function field_sort_order() {
+	public function field_sort_order() {
 		$sort_order = isset( $this->parent->options['sort_order'] ) ? $this->parent->options['sort_order'] : 'score';
 
 		echo '<select id="field_sort_order" name="full_text_search_options[sort_order]">';
@@ -330,7 +359,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 2.4.0
 	 */
-	function field_display_search_result() {
+	public function field_display_search_result() {
 		$display_score = isset( $this->parent->options['display_score'] ) ? $this->parent->options['display_score'] : false;
 
 		echo '<fieldset id="display_search_result"><legend class="screen-reader-text"><span>' . __( 'Display search result', 'full-text-search' ) . '</span></legend>';
@@ -343,7 +372,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 1.6.0
 	 */
-	function field_enable_attachment() {
+	public function field_enable_attachment() {
 		$enable_attachment = isset( $this->parent->options['enable_attachment'] ) ? $this->parent->options['enable_attachment'] : 'enable';
 		$zip = isset( $this->parent->options['enable_zip'] ) ? $this->parent->options['enable_zip'] : false;
 		$pdf = isset( $this->parent->options['enable_pdf'] ) ? $this->parent->options['enable_pdf'] : false;
@@ -373,7 +402,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 2.0.0
 	 */
-	function field_enable_auto_text() {
+	public function field_enable_auto_text() {
 		$pdf = isset( $this->parent->options['auto_pdf'] ) ? $this->parent->options['auto_pdf'] : true;
 		$word = isset( $this->parent->options['auto_word'] ) ? $this->parent->options['auto_word'] : true;
 		$excel = isset( $this->parent->options['auto_excel'] ) ? $this->parent->options['auto_excel'] : true;
@@ -395,7 +424,7 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 1.0.0
 	 */
-	function sanitize( $input ) {
+	public function sanitize( $input ) {
 		$this->parent->options['enable_mode'] = $input['enable_mode'];
 		$this->parent->options['sort_order'] = $input['sort_order'];
 		$this->parent->options['display_score'] = ( isset( $input['display_score'] ) && '1' === $input['display_score'] );
@@ -435,7 +464,7 @@ class Full_Text_Search_Admin {
 	 * @param string[] $posts_columns An array of columns displayed in the Media list table.
 	 * @return string[] The modified columns.
 	 */
-	function manage_media_columns( $columns ) {
+	public function manage_media_columns( $columns ) {
 		echo '<style>.fixed .column-fulltext { width: 10%; }</style>';
 		$columns['fulltext'] = __( 'Search character count', 'full-text-search' );
 		return $columns;
@@ -450,7 +479,7 @@ class Full_Text_Search_Admin {
 	 * @param int    $post_id     Attachment ID.
 	 * @return void
 	 */
-	function manage_media_custom_column( $column_name, $post_id ) {
+	public function manage_media_custom_column( $column_name, $post_id ) {
 		if ( 'fulltext' === $column_name ) {
 			// if ( ( $post = get_post( $post_id ) ) && 'application/pdf' !== $post->post_mime_type ) { return; }
 			if ( $row = $this->parent->get_fulltext_row( $post_id ) ) {
@@ -483,7 +512,7 @@ class Full_Text_Search_Admin {
 	 * @param WP_Post $post        The WP_Post attachment object.
 	 * @return array Filtered attachment form fields.
 	 */
-	function attachment_fields_to_edit( $form_fields, $post ) {
+	public function attachment_fields_to_edit( $form_fields, $post ) {
 		$search_text = get_post_meta( $post->ID, Full_Text_Search::CUSTOM_FIELD_NAME, true );
 
 		if ( empty( $search_text ) ) {
@@ -513,7 +542,7 @@ class Full_Text_Search_Admin {
 	 * @param array $attachment An array of attachment metadata.
 	 * @return array Filtered attachment post object.
 	 */
-	function attachment_fields_to_save( $post, $attachment_data ) {
+	public function attachment_fields_to_save( $post, $attachment_data ) {
 		$search_text = '';
 		if ( isset( $attachment_data['search_text'] ) ) {
 			$search_text = $attachment_data['search_text'];
@@ -537,7 +566,7 @@ class Full_Text_Search_Admin {
 	 * @param string   $plugin_file Path to the plugin file relative to the plugins directory.
 	 * @return array Filtered an array of plugin action links.
 	 */
-	function plugin_action_links( $actions, $plugin_file ) {
+	public function plugin_action_links( $actions, $plugin_file ) {
 		if ( 'full-text-search.php' == basename( $plugin_file ) ) {
 			$settings = array(
 				'settings' => '<a href="' . admin_url( 'options-general.php?page=full-text-search' ) . '">' . __( 'Settings', 'full-text-search' ) . '</a>',

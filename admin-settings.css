@@ -15,14 +15,28 @@ Full-Text Search Settings page.
 	margin-bottom: 0;
 }
 
+.settings_page_full-text-search.wp-core-ui .button-danger {
+	background: #dc3545;
+	border-color: #dc3545;
+	color: #fff;
+}
+.settings_page_full-text-search.wp-core-ui .button-danger:hover,
+.settings_page_full-text-search.wp-core-ui .button-danger:focus {
+	background: #c82333;
+	border-color: #bd2130;
+}
+.settings_page_full-text-search.wp-core-ui .button-danger:focus {
+	box-shadow: 0 0 0 1px #fff,0 0 0 3px #dc3545;
+}
+  
 /*
 See WordPress full-text-search.css.
 */
-.settings_page_full-text-search .update-nag{
+.settings_page_full-text-search .update-nag {
 	margin-bottom: 20px;
 	margin-left: 22px;
 }
-.settings_page_full-text-search .notice{
+.settings_page_full-text-search .notice {
 	margin: 5px 20px 15px 22px;
 }
 
