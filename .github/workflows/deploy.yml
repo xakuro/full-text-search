@@ -10,12 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: Install dependencies
-      uses: php-actions/composer@v6
-      with:
-        php_version: "7.4"
-        version: 2.1
-        dev: no
-        args: --profile --ignore-platform-reqs
+      run: composer install
     - name: WordPress Plugin Deploy
       uses: 10up/action-wordpress-plugin-deploy@stable
       env:
