@@ -621,7 +621,7 @@ class Full_Text_Search {
 		$pdffile = $this->pdfparser->parseFile( $file );
 		$text = $pdffile->getText();
 
-		$text = str_replace( array( "\r\n", "\r", "\n", "\t", ' ', '　' ), '', $text );
+		$text = str_replace( array( "\r\n", "\r", "\n", "\t", '　' ), '', $text );
 
 		return trim( $text );
 	}
