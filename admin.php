@@ -366,12 +366,15 @@ class Full_Text_Search_Admin {
 	 * Register Display search result field.
 	 *
 	 * @since 2.4.0
+	 * @since 2.9.0 Add search keyword highlight field.
 	 */
 	public function field_display_search_result() {
 		$display_score = isset( $this->parent->options['display_score'] ) ? $this->parent->options['display_score'] : false;
+		$highlight = isset( $this->parent->options['highlight'] ) ? $this->parent->options['highlight'] : false;
 
 		echo '<fieldset id="display_search_result"><legend class="screen-reader-text"><span>' . __( 'Display search result', 'full-text-search' ) . '</span></legend>';
-		echo '<label for="display_score"><input type="checkbox" name="full_text_search_options[display_score]" id="display_score" value="1" ' . checked( $display_score, true, false ) . '> ' . __( 'Search Score', 'full-text-search' ) . '</label>';
+		echo '<p><label for="display_score"><input type="checkbox" name="full_text_search_options[display_score]" id="display_score" value="1" ' . checked( $display_score, true, false ) . '> ' . __( 'Search Score', 'full-text-search' ) . '</label></p>';
+		echo '<p><label for="highlight"><input type="checkbox" name="full_text_search_options[highlight]" id="highlight" value="1" ' . checked( $highlight, true, false ) . '> ' . __( 'Highlight search terms', 'full-text-search' ) . '</label></p>';
 		echo '</fieldset>';
 	}
 
@@ -436,6 +439,7 @@ class Full_Text_Search_Admin {
 		$this->parent->options['enable_mode'] = $input['enable_mode'];
 		$this->parent->options['sort_order'] = $input['sort_order'];
 		$this->parent->options['display_score'] = ( isset( $input['display_score'] ) && '1' === $input['display_score'] );
+		$this->parent->options['highlight'] = ( isset( $input['highlight'] ) && '1' === $input['highlight'] );
 
 		$this->parent->options['enable_attachment'] = $input['enable_attachment'];
 		if ( 'filter' === $this->parent->options['enable_attachment'] ) {

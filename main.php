@@ -70,6 +70,10 @@ class Full_Text_Search {
 			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 			add_filter( 'get_the_excerpt', array( $this, 'get_the_excerpt' ), 10, 2 );
 		}
+
+		if ( isset( $this->options['highlight'] ) && $this->options['highlight'] ) {
+			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_highlight_scripts' ) );
+		}
 	}
 
 	/**
@@ -102,7 +106,7 @@ class Full_Text_Search {
 			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
 			if (
 				( 'enable' === $enable_mode ) ||
-				( 'search' === $enable_mode && $query->is_main_query() && $query->is_search && ! $query->is_admin )
+				( 'search' === $enable_mode && $query->is_main_query() && ! $query->is_admin )
 			) {
 				$search = '';
 			}
@@ -119,7 +123,7 @@ class Full_Text_Search {
 	 * @return void.
 	 */
 	public function pre_get_posts( $query ) {
-		if ( $query->is_search && ! $query->is_admin ) {
+		if ( $query->is_search && $query->is_main_query() ) {
 			$query->set( 'post_status', array( 'publish', 'private', 'inherit' ) );
 		}
 	}
@@ -233,49 +237,26 @@ class Full_Text_Search {
 			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
 			$s = trim( sanitize_text_field( $query->get( 's', '' ) ) );
 
-			if ( ( 'enable' === $enable_mode || ( 'search' === $enable_mode && is_search() ) ) && ! empty( $s ) ) {
+			if ( ( 'enable' === $enable_mode || ( 'search' === $enable_mode && $query->is_main_query() ) ) && ! empty( $s ) ) {
 				global $wpdb;
 
 				$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
-
-				$q = $query->fill_query_vars( $query->query_vars );
-				$post_type = ( ! isset( $q['post_type'] ) ) ? 'any' : $q['post_type'];
-
-				if ( 'any' === $post_type ) {
-					$in_search_post_types = get_post_types( array( 'exclude_from_search' => false ) );
-					if ( empty( $in_search_post_types ) ) {
-						$post_type_where = ' AND 1=0 ';
-					} else {
-						$post_type_where = " AND post_type IN ('" . implode( "', '", array_map( 'esc_sql', $in_search_post_types ) ) . "')";
-					}
-				} elseif ( ! empty( $post_type ) && is_array( $post_type ) ) {
-					$post_type_where = " AND post_type IN ('" . implode( "', '", esc_sql( $post_type ) ) . "')";
-				} elseif ( ! empty( $post_type ) ) {
-					$post_type_where = $wpdb->prepare( " AND post_type = %s", $post_type );
-				} elseif ( $query->is_attachment ) {
-					$post_type_where = " AND post_type = 'attachment'";
-				} elseif ( $query->is_page ) {
-					$post_type_where = " AND post_type = 'page'";
-				} else {
-					$post_type_where = " AND post_type = 'post'";
-				}
 
 				$join = isset( $clauses['join'] ) ? $clauses['join'] : '';
 				$fields = isset( $clauses['fields'] ) ? $clauses['fields'] : '';
 				$orderby = isset( $clauses['orderby'] ) ? $clauses['orderby'] : '';
 
 				if ( 'mroonga' === $this->options['db_engine'] ) {
-					$s = "*D+ " . $this->normalize_search_string_for_mroonga( $s );
+					$s = "*D+W1:2,2:2,3:1,4:1 " . $this->normalize_search_string_for_mroonga( $s );
 				} else {
 					$s = $this->normalize_search_string_for_innodb( $s );
 				}
 
 				$join .= $wpdb->prepare(
 					" INNER JOIN (" .
-					"SELECT ID, post_type, MATCH(keywords, post_title, post_content, post_excerpt) AGAINST(%s IN BOOLEAN MODE) AS score " .
+					"SELECT ID, MATCH(keywords, post_title, post_content, post_excerpt) AGAINST(%s IN BOOLEAN MODE) AS score " .
 					"FROM {$table_name} " .
 					"WHERE MATCH(keywords, post_title, post_content, post_excerpt) AGAINST(%s IN BOOLEAN MODE)" .
-					$post_type_where .
 					") matched_posts ON matched_posts.ID = {$wpdb->posts}.ID",
 					$s, $s
 				);
@@ -305,7 +286,7 @@ class Full_Text_Search {
 	 * @return string WHERE clause.
 	 */
 	public function posts_where( $where, $query ) {
-		if ( $query->is_search && ! $query->is_admin ) {
+		if ( $query->is_search && $query->is_main_query() ) {
 			global $wpdb;
 
 			if ( isset( $this->options['enable_attachment'] ) && 'filter' === $this->options['enable_attachment'] ) {
@@ -380,9 +361,6 @@ class Full_Text_Search {
 
 		$data = array(
 			'ID'            => $post->ID,
-			'post_type'     => $post->post_type,
-			'post_status'   => $post->post_status,
-			'post_password' => $post->post_password,
 			'post_modified' => $post->post_modified,
 			'post_title'    => wp_strip_all_tags( $post->post_title ),
 			'post_content'  => wp_strip_all_tags( $post->post_content ),
@@ -411,7 +389,7 @@ class Full_Text_Search {
 					try {
 						$keywords = $this->get_text_from_pdf_file( $filename );
 						$status = 0;
-					} catch ( \Exception $e ) {
+					} catch ( Exception $e ) {
 						$status = 2;
 					}
 				} else if ( 'application/msword' === $post->post_mime_type ) {
@@ -543,6 +521,7 @@ class Full_Text_Search {
 			'auto_excel'        => true,
 			'auto_powerpoint'   => true,
 			'display_score'     => true,
+			'highlight'         => true,
 		);
 	}
 
@@ -577,9 +556,6 @@ class Full_Text_Search {
 			$result = $wpdb->query(
 				"CREATE TABLE `{$table_name}` (
 				ID bigint(20) unsigned NOT NULL auto_increment,
-				post_type varchar(20) NOT NULL default 'post',
-				post_status varchar(20) NOT NULL default 'publish',
-				post_password varchar(255) NOT NULL default '',
 				post_modified datetime NOT NULL default CURRENT_TIMESTAMP,
 				post_title text NOT NULL,
 				post_content longtext NOT NULL,
@@ -587,8 +563,7 @@ class Full_Text_Search {
 				keywords longtext NOT NULL,
 				status tinyint(1) NOT NULL default '0',
 				PRIMARY KEY (ID),
-				{$db_index},
-				KEY post_type (post_type)
+				{$db_index}
 				) ENGINE={$db_engine} {$charset_collate};"
 			);
 		} else if ( $db_engine != strtolower( $table_engine ) ) {
@@ -828,7 +803,7 @@ class Full_Text_Search {
 		 * Update
 		 */
 		$rows = $wpdb->get_results(
-			"SELECT SQL_CALC_FOUND_ROWS t1.ID, t1.post_type, t1.post_mime_type, t1.post_status, t1.post_password, t1.post_modified, t1.post_title, t1.post_content, t1.post_excerpt, m.meta_value AS keywords " .
+			"SELECT SQL_CALC_FOUND_ROWS t1.ID, t1.post_modified, t1.post_title, t1.post_content, t1.post_excerpt, m.meta_value AS keywords " .
 			"FROM {$wpdb->posts} AS t1 LEFT OUTER JOIN {$table_name} AS t2 ON (t1.ID = t2.ID) " .
 			"LEFT JOIN {$wpdb->postmeta} AS m ON t1.ID = m.post_id AND m.meta_key = '" . Full_Text_Search::CUSTOM_FIELD_NAME . "' " . 
 			"WHERE (t2.ID IS NULL OR t1.post_modified > t2.post_modified) AND t1.post_type NOT IN ('revision','custom_css','customize_changeset') LIMIT {$limit};"
@@ -895,6 +870,138 @@ class Full_Text_Search {
 	}
 
 	/**
+	 * Enqueues highlight scripts for this search page.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @return void
+	 */
+	public function enqueue_highlight_scripts() {
+		if ( is_search() ) {
+			$min = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+			wp_enqueue_script( 'mark', plugins_url( "/js/mark{$min}.js", __FILE__ ) );
+			wp_add_inline_script( 'mark', $this->get_script_mark() );
+		}
+	}
+
+	/**
+	 * Get keywords from a search string.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @return array
+	 */
+	private function get_search_keywords( $input ) {
+		$ws = preg_split( '//u', $input . ' ', -1, PREG_SPLIT_NO_EMPTY );
+		$in = false;
+		$w = '';
+		$a = array();
+		foreach ( $ws as $s ) {
+			if ( '　' === $s && ! $in ) {
+				$s = ' ';
+			}
+			if ( ' ' === $s && ! $in ) {
+				if ( 'OR' === $w ) {
+					$w = '';
+				}
+				if ( 'AND' === $w ) {
+					$w = '';
+				}
+				if ( '' !== $w && ' ' !== $w  ) {
+					if ( ! in_array( substr( $w, 0, 1 ), array( '+', '-', '~', '@' ) ) ) {
+						$count = count( $a );
+						if ( $count > 0 ) {
+							$a[$count - 1] = ltrim( $a[$count - 1], '+' );
+						}
+					}
+					$a[] = $w;
+				}
+				$w = '';
+			} else if ( ( '(' === $s  || ')' === $s ) && ! $in ) {
+				$count = count( $a );
+				if ( $count > 0 ) {
+					$a[$count - 1] = ltrim( $a[$count - 1], '+' );
+				}
+				$a[] = $w;
+				$a[] = $s;
+				$w = '';
+			} else {
+				if ( '"' === $s ) {
+					$in = ! $in;
+				} else {
+					$w .= $s;
+				}
+			}
+		}
+		return $a;
+	}
+
+	/**
+	 * Get JavaScript for highlighting.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @return string
+	 */
+	private function get_script_mark() {
+		$selectors = array( '#main', '#content', '#site-content', '#container', 'main', 'article' );
+
+		/**
+		 * Filter the content selector to highlight.
+		 *
+		 * @since 2.9.0
+		 *
+		 * @param array $selectors Selectors.
+		 */
+		$selectors = (array) apply_filters( 'full-text-search-highlight-selectors', $selectors );
+
+		$keywords = $this->get_search_keywords( get_search_query() );
+
+		// Mixing of multi-byte characters and single-byte characters is not considered.
+		if ( function_exists( 'mb_convert_kana' ) ) {
+			$a = array();
+			foreach ( $keywords as $keyword ) {
+				$a[] = $keyword;
+				if ( $keyword !== ( $han = mb_convert_kana( $keyword, 'a' ) ) ) $a[] = $han;
+				if ( $keyword !== ( $zen = mb_convert_kana( $keyword, 'A' ) ) ) $a[] = $zen;
+			}
+			$keywords = $a;
+		}
+
+		$selectors = wp_json_encode( $selectors );
+		$keywords = wp_json_encode( $keywords );
+
+$script = <<< SCRIPT
+fullTextSearchHighlight = function() {
+	const keywords = {$keywords}, selectors = {$selectors};
+	for (let selector in selectors) {
+		let context = document.querySelectorAll(selectors[selector]);
+		if (!context.length) {
+			continue;
+		}
+		for (let i = 0; i < context.length; i++) {
+			for (let keyword in keywords ) {
+				var mark = new Mark(context[i]);
+				mark.mark(keywords[keyword], {
+					"element": "mark",
+					"className": "fts",
+					"separateWordSearch": false,
+					"iframes": false,
+					"exclude": ["script", "style", "input", "textarea", "footer *"],
+				});
+			}
+		}
+		if (context.length) break;
+	}
+	if (typeof Cufon=="function") Cufon.refresh();
+}
+window.addEventListener('DOMContentLoaded', fullTextSearchHighlight);
+SCRIPT;
+
+		return $script;
+	}
+
+	/**
 	 * Filters the post excerpt.
 	 *
 	 * @since 2.4.0
@@ -911,6 +1018,28 @@ class Full_Text_Search {
 				'</span></div>' . $excerpt;
 		}
 		return $excerpt;
+	}
+
+	/**
+	 * Retrieves the score HTML.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param WP_Post $post Post object.
+	 * @return string
+	 */
+	public static function get_the_score( $post = null ) {
+		if ( ! $post ) {
+			$post = get_post();
+		}
+		if ( ! property_exists( $post, 'search_score' ) ) {
+			return '';
+		}
+		$html = 
+			'<div class="full-text-search-result-items"><span class="full-text-search-score">' . 
+			sprintf( __( 'Search score: %01.2f', 'full-text-search' ), $post->search_score ) . 
+			'</span></div>';
+		return $html;
 	}
 
 	/**
@@ -953,8 +1082,8 @@ class Full_Text_Search {
 			$options['db_engine'] = $engine;
 			add_option( 'full_text_search_options', $options );
 		} else {
-			// Less than 2.8.0
-			if ( version_compare( $options['plugin_version'], '2.8.0', '<' ) ) {
+			// Less than 2.9.0
+			if ( version_compare( $options['plugin_version'], '2.9.0', '<' ) ) {
 				$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
 				$wpdb->query( "DROP TABLE IF EXISTS {$table_name};" );
 			}
