@@ -125,7 +125,10 @@ class Full_Text_Search_Admin {
 		header( 'Content-type: application/json' );
 
 		try {
-			$posts_count = $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->posts} WHERE post_type NOT IN ('revision','custom_css','customize_changeset');" );
+			$post_types = get_post_types( array( 'exclude_from_search' => false ) );
+			$sql_posts = "'" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "'";
+
+			$posts_count = $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->posts} WHERE post_type IN ({$sql_posts}) AND post_status <> 'auto-draft';" );
 			$index_count = $wpdb->get_var( "SELECT COUNT(ID) FROM {$table_name};" );
 
 			$res['posts_count'] = $posts_count;
@@ -173,7 +176,10 @@ class Full_Text_Search_Admin {
 
 		$current_tab = ( isset( $_GET['tab'] ) ? $_GET['tab'] : '' );
 
-		$posts_count = $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->posts} WHERE post_type NOT IN ('revision','custom_css','customize_changeset');" );
+		$post_types = get_post_types( array( 'exclude_from_search' => false ) );
+		$sql_posts = "'" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "'";
+
+		$posts_count = $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->posts} WHERE post_type IN ({$sql_posts}) AND post_status <> 'auto-draft';" );
 		$index_count = $wpdb->get_var( "SELECT COUNT(ID) FROM {$table_name};" );
 		$completed = ( $posts_count === $index_count );
 

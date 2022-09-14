@@ -105,8 +105,8 @@ class Full_Text_Search {
 		if ( $search ) {
 			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
 			if (
-				( 'enable' === $enable_mode ) ||
-				( 'search' === $enable_mode && $query->is_main_query() && ! $query->is_admin )
+				( ( 'enable' === $enable_mode ) || ( 'search' === $enable_mode && $query->is_main_query() && ! $query->is_admin ) )
+				&& $this->is_exclude_from_search( $query )
 			) {
 				$search = '';
 			}
@@ -224,6 +224,27 @@ class Full_Text_Search {
 	}
 
 	/**
+	 * Determines whether the query is for full-text search.
+	 *
+	 * @since 2.9.1
+	 *
+	 * @param WP_Query $query The WP_Query instance (passed by reference).
+	 * @return bool
+	 */
+	private function is_exclude_from_search( $query ) {
+		$post_type = $query->query_vars['post_type'];
+		if ( 'any' !== $post_type && ! empty( $post_type ) ) {
+			$in_search_post_types = get_post_types( array( 'exclude_from_search' => false ) );
+			foreach ( (array) $post_type as $_post_type ) {
+				if ( ! isset( $in_search_post_types[$_post_type] ) ) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	/**
 	 * Filters all query clauses at once, for convenience.
 	 *
 	 * @since 2.8.0
@@ -237,7 +258,11 @@ class Full_Text_Search {
 			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
 			$s = trim( sanitize_text_field( $query->get( 's', '' ) ) );
 
-			if ( ( 'enable' === $enable_mode || ( 'search' === $enable_mode && $query->is_main_query() ) ) && ! empty( $s ) ) {
+			if ( 
+				( 'enable' === $enable_mode || ( 'search' === $enable_mode && $query->is_main_query() && ! $query->is_admin ) )
+				&& ! empty( $s )
+				&& $this->is_exclude_from_search( $query )
+			) {
 				global $wpdb;
 
 				$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
@@ -361,6 +386,7 @@ class Full_Text_Search {
 
 		$data = array(
 			'ID'            => $post->ID,
+			'post_type'     => $post->post_type,
 			'post_modified' => $post->post_modified,
 			'post_title'    => wp_strip_all_tags( $post->post_title ),
 			'post_content'  => wp_strip_all_tags( $post->post_content ),
@@ -373,11 +399,13 @@ class Full_Text_Search {
 		 * Filter a index data.
 		 *
 		 * @since 2.6.0
+		 * @since 2.9.1 Added the `$post` parameter.
 		 *
-		 * @param array $data    See wpdb::replace()
-		 * @param int   $post_ID Post ID.
+		 * @param array   $data    See wpdb::replace()
+		 * @param int     $post_ID Post ID.
+		 * @param WP_Post $post    Post object.
 		 */
-		$data = apply_filters( 'full_text_search_index_post', $data, $post_ID );
+		$data = apply_filters( 'full_text_search_index_post', $data, $post_ID, $post );
 
 		$wpdb->replace( $table_name, $data );
 
@@ -451,7 +479,8 @@ class Full_Text_Search {
 	 * @return void
 	 */
 	public function update_post( $post_ID, $post, $update ) {
-		if ( ! in_array( $post->post_type, array( 'revision', 'custom_css', 'customize_changeset' ) ) ) {
+		$post_types = get_post_types( array( 'exclude_from_search' => false ) );
+		if ( in_array( $post->post_type, $post_types ) && $post->post_status !== 'auto-draft' ) {
 			$this->update_index_post( $post_ID, $post, null, $update );
 		}
 	}
@@ -556,6 +585,7 @@ class Full_Text_Search {
 			$result = $wpdb->query(
 				"CREATE TABLE `{$table_name}` (
 				ID bigint(20) unsigned NOT NULL auto_increment,
+				post_type varchar(20) NOT NULL default 'post',
 				post_modified datetime NOT NULL default CURRENT_TIMESTAMP,
 				post_title text NOT NULL,
 				post_content longtext NOT NULL,
@@ -777,7 +807,10 @@ class Full_Text_Search {
 
 		$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
 
-		$posts_count = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->posts} WHERE post_type NOT IN ('revision','custom_css','customize_changeset');" );
+		$post_types = get_post_types( array( 'exclude_from_search' => false ) );
+		$sql_posts = "'" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "'";
+
+		$posts_count = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->posts} WHERE post_type IN ({$sql_posts}) AND post_status <> 'auto-draft';" );
 
 		/**
 		 * Maximum number of records to process at one time.
@@ -797,16 +830,16 @@ class Full_Text_Search {
 		/*
 		 * Delete
 		 */
-		$wpdb->query( "DELETE FROM {$table_name} WHERE ID NOT IN (SELECT ID FROM {$wpdb->posts} WHERE post_type NOT IN ('revision','custom_css','customize_changeset'))" );
+		$wpdb->query( "DELETE FROM {$table_name} WHERE ID NOT IN (SELECT ID FROM {$wpdb->posts} WHERE post_type IN ({$sql_posts}) AND post_status <> 'auto-draft');" );
 
 		/*
 		 * Update
 		 */
 		$rows = $wpdb->get_results(
-			"SELECT SQL_CALC_FOUND_ROWS t1.ID, t1.post_modified, t1.post_title, t1.post_content, t1.post_excerpt, m.meta_value AS keywords " .
+			"SELECT SQL_CALC_FOUND_ROWS t1.ID, t1.post_type, t1.post_mime_type, t1.post_modified, t1.post_title, t1.post_content, t1.post_excerpt, m.meta_value AS keywords " .
 			"FROM {$wpdb->posts} AS t1 LEFT OUTER JOIN {$table_name} AS t2 ON (t1.ID = t2.ID) " .
 			"LEFT JOIN {$wpdb->postmeta} AS m ON t1.ID = m.post_id AND m.meta_key = '" . Full_Text_Search::CUSTOM_FIELD_NAME . "' " . 
-			"WHERE (t2.ID IS NULL OR t1.post_modified > t2.post_modified) AND t1.post_type NOT IN ('revision','custom_css','customize_changeset') LIMIT {$limit};"
+			"WHERE (t2.ID IS NULL OR t1.post_modified > t2.post_modified) AND t1.post_type IN ({$sql_posts}) AND t1.post_status <> 'auto-draft' LIMIT {$limit};"
 		);
 
 		$found_rows = (int) $wpdb->get_var( 'SELECT FOUND_ROWS()' );
@@ -987,7 +1020,7 @@ fullTextSearchHighlight = function() {
 					"className": "fts",
 					"separateWordSearch": false,
 					"iframes": false,
-					"exclude": ["script", "style", "input", "textarea", "footer *"],
+					"exclude": ["script", "style", "input", "textarea", "h1 *", "footer *"],
 				});
 			}
 		}
@@ -1082,8 +1115,8 @@ SCRIPT;
 			$options['db_engine'] = $engine;
 			add_option( 'full_text_search_options', $options );
 		} else {
-			// Less than 2.9.0
-			if ( version_compare( $options['plugin_version'], '2.9.0', '<' ) ) {
+			// Less than 2.9.1
+			if ( version_compare( $options['plugin_version'], '2.9.1', '<' ) ) {
 				$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
 				$wpdb->query( "DROP TABLE IF EXISTS {$table_name};" );
 			}
