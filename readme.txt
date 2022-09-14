@@ -4,7 +4,7 @@ Tags: full-text,search,fulltext,mroonga
 Requires at least: 4.9
 Tested up to: 6.0
 Requires PHP: 7.1
-Stable tag: 2.9.0
+Stable tag: 2.9.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,11 @@ Mroonga engine is strongly recommended. InnoDB engine performs significantly wor
 4. Attachment details screen.
 
 == Changelog ==
+
+= 2.9.2 =
+
+* Changed full-text search to exclude_from_search posts only.
+* Fixed a bug that the text of attachments were not extracted when regenerating indexes.
 
 = 2.9.0 =
 
