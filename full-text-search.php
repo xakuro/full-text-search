@@ -8,7 +8,7 @@ Author URI: https://xakuro.com/
 License: GPLv2
 Requires at least: 4.9
 Requires PHP: 7.1
-Version: 2.9.2
+Version: 2.9.3
 Text Domain: full-text-search
 Domain Path: /languages/
 */
@@ -17,9 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'FULL_TEXT_SEARCH_VERSION', '2.9.2' );
+define( 'FULL_TEXT_SEARCH_VERSION', '2.9.3' );
 
-require_once( __DIR__ . '/main.php' );
+require_once __DIR__ . '/main.php';
 
 register_uninstall_hook( __FILE__, 'full_text_search::uninstall' );
 

@@ -189,6 +189,7 @@ class Full_Text_Search_Admin {
 
 			if ( ! empty( $_POST['full-text-search-index-regenerate'] ) ) {
 				$wpdb->query( "DELETE FROM {$table_name};" );
+				$wpdb->query( "OPTIMIZE TABLE {$table_name};" );
 			}
 
 			if ( ! wp_get_schedule( 'full_text_search_event' ) ) {
@@ -206,27 +207,27 @@ class Full_Text_Search_Admin {
 
 		?>
 		<div class="full-text-search-settings-header">
-			<div class="full-text-search-settings-title-section"><h1><?php _ex( 'Full-Text Search', 'setting', 'full-text-search' ); ?></h1></div>
+			<div class="full-text-search-settings-title-section"><h1><?php echo esc_html_x( 'Full-Text Search', 'setting', 'full-text-search' ); ?></h1></div>
 
-			<div class="full-text-search-settings-title-section full-text-search-settings-progress-wrapper <?php echo $progress_state; ?>">
+			<div class="full-text-search-settings-title-section full-text-search-settings-progress-wrapper <?php esc_attr_e( $progress_state ); ?>">
 				<div class="full-text-search-settings-progress">
 					<svg role="img" aria-hidden="true" focusable="false" width="100%" height="100%" viewBox="0 0 200 200" version="1.1" xmlns="http://www.w3.org/2000/svg">
 						<circle r="90" cx="100" cy="100" fill="transparent" stroke-dasharray="565.48" stroke-dashoffset="0"></circle>
-						<circle id="bar" r="90" cx="100" cy="100" fill="transparent" stroke-dasharray="565.48" stroke-dashoffset="0" <?php echo $stroke_dashoffse; ?>></circle>
+						<circle id="bar" r="90" cx="100" cy="100" fill="transparent" stroke-dasharray="565.48" stroke-dashoffset="0" <?php esc_attr_e( $stroke_dashoffse ); ?>></circle>
 					</svg>
 				</div>
-				<div class="full-text-search-settings-progress-label"><?php echo $progress_text; ?></div>
+				<div class="full-text-search-settings-progress-label"><?php esc_html_e( $progress_text ); ?></div>
 			</div>
 
-			<nav class="<?php echo implode( ' ', $wrapper_classes ); ?>" aria-label="<?php esc_attr_e( 'Secondary menu', 'full-text-search' ); ?>">
+			<nav class="<?php esc_attr_e( implode( ' ', $wrapper_classes ) ); ?>" aria-label="<?php esc_attr_e( 'Secondary menu', 'full-text-search' ); ?>">
 			<?php
-				foreach ( $tabs as $slug => $label ) {
-					printf( '<a href="%s" class="full-text-search-settings-tab %s">%s</a>',
-						esc_url( add_query_arg( array( 'page' => 'full-text-search', 'tab' => $slug ), admin_url( 'options-general.php' ) ) ),
-						( $current_tab === $slug ? 'active' : '' ),
-						esc_html( $label )
-					);
-				}
+			foreach ( $tabs as $slug => $label ) {
+				printf( '<a href="%s" class="full-text-search-settings-tab %s">%s</a>',
+					esc_url( add_query_arg( array( 'page' => 'full-text-search', 'tab' => $slug ), admin_url( 'options-general.php' ) ) ),
+					( $current_tab === $slug ? 'active' : '' ),
+					esc_html( $label )
+				);
+			}
 			?>
 			</nav>
 		</div>
@@ -241,14 +242,15 @@ class Full_Text_Search_Admin {
 
 				$ids = get_posts( array( 'post_type' => 'attachment', 'posts_per_page' => -1, 'post_status' => 'any', 'fields' => 'ids' ) );
 				if ( $ids ) {
+					$ids = array_filter( $ids, 'is_numeric' );
 					$result = $wpdb->query( $wpdb->prepare(
-						"DELETE FROM $wpdb->postmeta WHERE meta_key = %s AND post_id IN (" . implode( ',', $ids ) . ')',
+						"DELETE FROM $wpdb->postmeta WHERE meta_key = %s AND post_id IN (" . esc_sql( implode( ',', $ids ) ) . ')',
 						Full_Text_Search::CUSTOM_FIELD_NAME
 					) );
 				}
 
 				if ( false !== $result ) {
-					$result = $wpdb->query( "UPDATE $table_name SET keywords = NULL WHERE post_type = 'attachment';" );
+					$result = $wpdb->query( "UPDATE $table_name SET keywords = NULL, status = 0 WHERE post_type = 'attachment';" );
 				}
 
 				if ( false === $result ) {
@@ -321,7 +323,7 @@ class Full_Text_Search_Admin {
 			echo '</div>'; // #full-text-search-settings-maint
 		}
 
-		echo '</div>' . "\n";	// .full-text-search-settings-body
+		echo '</div>' . "\n"; // .full-text-search-settings-body
 	}
 
 	/**

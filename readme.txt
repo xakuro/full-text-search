@@ -2,9 +2,9 @@
 Contributors: ishitaka
 Tags: full-text,search,fulltext,mroonga
 Requires at least: 4.9
-Tested up to: 6.0
+Tested up to: 6.1
 Requires PHP: 7.1
-Stable tag: 2.9.2
+Stable tag: 2.9.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,11 @@ Mroonga engine is strongly recommended. InnoDB engine performs significantly wor
 4. Attachment details screen.
 
 == Changelog ==
+
+= 2.9.3 =
+* Changed default setting values.
+* Added escaping to multiple translate texts for enhanced security.
+* Code refactoring.
 
 = 2.9.2 =
 

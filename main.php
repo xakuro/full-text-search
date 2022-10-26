@@ -1,10 +1,10 @@
 <?php
-
 /**
  * Full-Text Search class.
  *
  * @since 1.0.0
  */
+
 class Full_Text_Search {
 	const TABLE_NAME        = 'full_text_search_posts';
 	const CUSTOM_FIELD_NAME = 'full_text_search_search_text';
@@ -538,7 +538,7 @@ class Full_Text_Search {
 			'db_type'           => '',          // '', 'mariadb' or 'mysql',
 			'db_engine'         => '',          // '', 'mroonga' or'innodb',
 			'sort_order'        => 'score',     // 'default' or 'score'.
-			'enable_mode'       => 'enable',    // 'disable', 'enable' or 'search'.
+			'enable_mode'       => 'search',    // 'disable', 'enable' or 'search'.
 			'enable_attachment' => 'enable',    // 'disable', 'enable' or 'filter'.
 			'enable_zip'        => false,
 			'enable_pdf'        => false,
@@ -569,9 +569,11 @@ class Full_Text_Search {
 			return false;
 		}
 
+		$engine = ( 'mroonga' === $db_engine ) ? 'Mroonga' : 'InnoDB';
+
 		$result = false;
 
-		$db_index = ( 'mroonga' == $db_engine ) ?
+		$db_index = ( 'mroonga' === $db_engine ) ?
 			'FULLTEXT INDEX (keywords,post_title,post_content,post_excerpt) COMMENT \'parser "TokenMecab"\'' :
 			'FULLTEXT INDEX (keywords,post_title,post_content,post_excerpt) WITH PARSER ngram';
 
@@ -594,13 +596,15 @@ class Full_Text_Search {
 				status tinyint(1) NOT NULL default '0',
 				PRIMARY KEY (ID),
 				{$db_index}
-				) ENGINE={$db_engine} {$charset_collate};"
+				) ENGINE={$engine} {$charset_collate};"
 			);
-		} else if ( $db_engine != strtolower( $table_engine ) ) {
-			$engine = ( 'mroonga' == $db_engine ) ? 'Mroonga' : 'InnoDB';
-			$result = $wpdb->query( "ALTER TABLE {$table_name} ENGINE={$engine}" );
 		} else {
-			$result = true;
+			if ( $db_engine !== strtolower( $table_engine ) ) {
+				$result = $wpdb->query( "ALTER TABLE {$table_name} ENGINE={$engine};" );
+			} else {
+				$result = true;
+			}
+			$wpdb->query( "OPTIMIZE TABLE {$table_name};" );
 		}
 
 		return $result;
@@ -835,12 +839,13 @@ class Full_Text_Search {
 		/*
 		 * Update
 		 */
-		$rows = $wpdb->get_results(
+		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT SQL_CALC_FOUND_ROWS t1.ID, t1.post_type, t1.post_mime_type, t1.post_modified, t1.post_title, t1.post_content, t1.post_excerpt, m.meta_value AS keywords " .
 			"FROM {$wpdb->posts} AS t1 LEFT OUTER JOIN {$table_name} AS t2 ON (t1.ID = t2.ID) " .
-			"LEFT JOIN {$wpdb->postmeta} AS m ON t1.ID = m.post_id AND m.meta_key = '" . Full_Text_Search::CUSTOM_FIELD_NAME . "' " . 
-			"WHERE (t2.ID IS NULL OR t1.post_modified > t2.post_modified) AND t1.post_type IN ({$sql_posts}) AND t1.post_status <> 'auto-draft' LIMIT {$limit};"
-		);
+			"LEFT JOIN {$wpdb->postmeta} AS m ON t1.ID = m.post_id AND m.meta_key = %s " . 
+			"WHERE (t2.ID IS NULL OR t1.post_modified > t2.post_modified) AND t1.post_type IN ({$sql_posts}) AND t1.post_status <> 'auto-draft' LIMIT %d;",
+			Full_Text_Search::CUSTOM_FIELD_NAME, $limit
+		) );
 
 		$found_rows = (int) $wpdb->get_var( 'SELECT FOUND_ROWS()' );
 
@@ -1004,7 +1009,7 @@ class Full_Text_Search {
 		$selectors = wp_json_encode( $selectors );
 		$keywords = wp_json_encode( $keywords );
 
-$script = <<< SCRIPT
+		$script = <<< SCRIPT
 fullTextSearchHighlight = function() {
 	const keywords = {$keywords}, selectors = {$selectors};
 	for (let selector in selectors) {
@@ -1020,7 +1025,7 @@ fullTextSearchHighlight = function() {
 					"className": "fts",
 					"separateWordSearch": false,
 					"iframes": false,
-					"exclude": ["script", "style", "input", "textarea", "h1 *", "footer *"],
+					"exclude": ["script", "style", "input", "textarea", "footer *"],
 				});
 			}
 		}

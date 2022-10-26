@@ -96,7 +96,7 @@ See WordPress full-text-search.css.
 	stroke-dashoffset: 0;
 	transition: stroke-dashoffset 1s linear;
 	stroke: #c3c4c7;
-	stroke-width: 2em;
+	stroke-width: 3em;
 }
 
 .full-text-search-settings-progress svg #bar {
