@@ -628,11 +628,21 @@ class Full_Text_Search {
 			$this->pdfparser = new \Smalot\PdfParser\Parser( [], $config );
 		}
 		$pdffile = $this->pdfparser->parseFile( $file );
-		$text = $pdffile->getText();
+		$text = trim( $pdffile->getText() );
 
-		$text = str_replace( array( "\r\n", "\r", "\n", "\t", '　' ), '', $text );
+		/**
+		 * Filters text extracted from PDF file.
+		 *
+		 * @since 2.9.4
+		 *
+		 * @param int $text Text.
+		 * @param int $file Path to the file.
+		 */
+		$text = apply_filters( 'full_text_search_pdf_text', $text, $file );
 
-		return trim( $text );
+		// $text = str_replace( array( "\r\n", "\r", "\n", "\t", '　' ), '', $text );
+
+		return $text;
 	}
 
 	/**

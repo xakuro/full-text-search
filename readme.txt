@@ -4,7 +4,7 @@ Tags: full-text,search,fulltext,mroonga
 Requires at least: 4.9
 Tested up to: 6.1
 Requires PHP: 7.1
-Stable tag: 2.9.3
+Stable tag: 2.9.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,7 +52,13 @@ Mroonga engine is strongly recommended. InnoDB engine performs significantly wor
 
 == Changelog ==
 
+= 2.9.4 =
+
+* Updated PDF Parser library to 2.2.2.
+* Added full_text_search_pdf_text filter.
+
 = 2.9.3 =
+
 * Changed default setting values.
 * Added escaping to multiple translate texts for enhanced security.
 * Code refactoring.

@@ -209,17 +209,17 @@ class Full_Text_Search_Admin {
 		<div class="full-text-search-settings-header">
 			<div class="full-text-search-settings-title-section"><h1><?php echo esc_html_x( 'Full-Text Search', 'setting', 'full-text-search' ); ?></h1></div>
 
-			<div class="full-text-search-settings-title-section full-text-search-settings-progress-wrapper <?php esc_attr_e( $progress_state ); ?>">
+			<div class="full-text-search-settings-title-section full-text-search-settings-progress-wrapper <?php echo esc_attr( $progress_state ); ?>">
 				<div class="full-text-search-settings-progress">
 					<svg role="img" aria-hidden="true" focusable="false" width="100%" height="100%" viewBox="0 0 200 200" version="1.1" xmlns="http://www.w3.org/2000/svg">
 						<circle r="90" cx="100" cy="100" fill="transparent" stroke-dasharray="565.48" stroke-dashoffset="0"></circle>
-						<circle id="bar" r="90" cx="100" cy="100" fill="transparent" stroke-dasharray="565.48" stroke-dashoffset="0" <?php esc_attr_e( $stroke_dashoffse ); ?>></circle>
+						<circle id="bar" r="90" cx="100" cy="100" fill="transparent" stroke-dasharray="565.48" stroke-dashoffset="0" <?php echo esc_attr( $stroke_dashoffse ); ?>></circle>
 					</svg>
 				</div>
-				<div class="full-text-search-settings-progress-label"><?php esc_html_e( $progress_text ); ?></div>
+				<div class="full-text-search-settings-progress-label"><?php echo esc_html( $progress_text ); ?></div>
 			</div>
 
-			<nav class="<?php esc_attr_e( implode( ' ', $wrapper_classes ) ); ?>" aria-label="<?php esc_attr_e( 'Secondary menu', 'full-text-search' ); ?>">
+			<nav class="<?php echo esc_attr( implode( ' ', $wrapper_classes ) ); ?>" aria-label="<?php esc_attr_e( 'Secondary menu', 'full-text-search' ); ?>">
 			<?php
 			foreach ( $tabs as $slug => $label ) {
 				printf( '<a href="%s" class="full-text-search-settings-tab %s">%s</a>',
