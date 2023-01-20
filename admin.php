@@ -338,6 +338,7 @@ class Full_Text_Search_Admin {
 		add_settings_field( 'Enable full-text search', __( 'Full-text search', 'full-text-search' ), array( $this, 'field_enable_mode' ), 'full_text_search_group', 'full_text_search_search_section' );
 		add_settings_field( 'Sort order', __( 'Sort order', 'full-text-search' ), array( $this, 'field_sort_order' ), 'full_text_search_group', 'full_text_search_search_section' );
 		add_settings_field( 'Display search result', __( 'Display search result', 'full-text-search' ), array( $this, 'field_display_search_result' ), 'full_text_search_group', 'full_text_search_search_section' );
+		add_settings_field( 'Search target', __( 'Search target', 'full-text-search' ), array( $this, 'field_search_target' ), 'full_text_search_group', 'full_text_search_search_section' );
 		add_settings_field( 'Enable attachment search', __( 'Attachment search', 'full-text-search' ), array( $this, 'field_enable_attachment' ), 'full_text_search_group', 'full_text_search_search_section' );
 		add_settings_field( 'Enable auto text', __( 'Automatic text extraction', 'full-text-search' ), array( $this, 'field_enable_auto_text' ), 'full_text_search_group', 'full_text_search_search_section' );
 	}
@@ -440,6 +441,26 @@ class Full_Text_Search_Admin {
 	}
 
 	/**
+	 * Register search target.
+	 *
+	 * @since 2.10.0
+	 */
+	public function field_search_target() {
+		$shortcode = isset( $this->parent->options['search_shortcode'] ) ? $this->parent->options['search_shortcode'] : false;
+		$block = isset( $this->parent->options['search_block'] ) ? $this->parent->options['search_block'] : false;
+		$html = isset( $this->parent->options['search_html'] ) ? $this->parent->options['search_html'] : false;
+
+		echo '<fieldset id="search-target"><legend class="screen-reader-text"><span>' . __( 'Search target', 'full-text-search' ) . '</span></legend>';
+		echo '<ul>';
+		echo '<li><label for="search_shortcode"><input type="checkbox" name="full_text_search_options[search_shortcode]" id="search_shortcode" value="1" ' . checked( $shortcode, true, false ) . '> ' . __( 'Shortcode content', 'full-text-search' ) . '</label></li>';
+		echo '<li><label for="search_block"><input type="checkbox" name="full_text_search_options[search_block]" id="search_block" value="1" ' . checked( $block, true, false ) . '> ' . __( 'Reusable Block Content', 'full-text-search' ) . '</label></li>';
+		echo '<li><label for="search_html"><input type="checkbox" name="full_text_search_options[search_html]" id="search_html" value="1" ' . checked( $html, true, false ) . '> ' . __( 'HTML tags', 'full-text-search' ) . '</label></li>';
+		echo '</ul>';
+		echo '</fieldset>';
+		echo '<p class="description">' . __( 'This option will be reflected when the post is updated. To apply existing posts, you need to perform a regeneration from maintenance.', 'full-text-search' ) . '</p>';
+	}
+
+	/**
 	 * Sanitize our setting.
 	 *
 	 * @since 1.0.0
@@ -473,6 +494,10 @@ class Full_Text_Search_Admin {
 		$this->parent->options['auto_word'] = ( isset( $input['auto_word'] ) && '1' === $input['auto_word'] );
 		$this->parent->options['auto_excel'] = ( isset( $input['auto_excel'] ) && '1' === $input['auto_excel'] );
 		$this->parent->options['auto_powerpoint'] = ( isset( $input['auto_powerpoint'] ) && '1' === $input['auto_powerpoint'] );
+
+		$this->parent->options['search_shortcode'] = ( isset( $input['search_shortcode'] ) && '1' === $input['search_shortcode'] );
+		$this->parent->options['search_block'] = ( isset( $input['search_block'] ) && '1' === $input['search_block'] );
+		$this->parent->options['search_html'] = ( isset( $input['search_html'] ) && '1' === $input['search_html'] );
 
 		return $this->parent->options;
 	}

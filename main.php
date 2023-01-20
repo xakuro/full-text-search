@@ -388,12 +388,28 @@ class Full_Text_Search {
 			'ID'            => $post->ID,
 			'post_type'     => $post->post_type,
 			'post_modified' => $post->post_modified,
-			'post_title'    => wp_strip_all_tags( $post->post_title ),
-			'post_content'  => wp_strip_all_tags( $post->post_content ),
-			'post_excerpt'  => wp_strip_all_tags( $post->post_excerpt ),
+			'post_title'    => $post->post_title,
+			'post_content'  => $post->post_content,
+			'post_excerpt'  => $post->post_excerpt,
 			'keywords'      => $keywords,
 			'status'        => $status
 		);
+
+		if ( isset( $this->options['search_block'] ) && $this->options['search_block'] ) {
+			if ( function_exists( 'do_blocks' ) ) {
+				$data['post_content'] =  do_blocks( $data['post_content'] );
+			}
+		}
+
+		if ( isset( $this->options['search_shortcode'] ) && $this->options['search_shortcode'] ) {
+			$data['post_content'] = do_shortcode( $data['post_content'] );
+		}
+
+		if ( ! isset( $this->options['search_html'] ) || ! $this->options['search_html'] ) {
+			$data['post_title'] = wp_strip_all_tags( $data['post_title'] );
+			$data['post_content'] = wp_strip_all_tags( $data['post_content'] );
+			$data['post_excerpt'] = wp_strip_all_tags( $data['post_excerpt'] );
+		}
 
 		/**
 		 * Filter a index data.
@@ -551,6 +567,9 @@ class Full_Text_Search {
 			'auto_powerpoint'   => true,
 			'display_score'     => true,
 			'highlight'         => true,
+			'search_shortcode'  => false,
+			'search_block'      => false,
+			'search_html'       => false,
 		);
 	}
 
