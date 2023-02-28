@@ -4,7 +4,7 @@ Tags: full-text,search,fulltext,mroonga
 Requires at least: 4.9
 Tested up to: 6.1
 Requires PHP: 7.1
-Stable tag: 2.10.1
+Stable tag: 2.10.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,7 +52,7 @@ Mroonga engine is strongly recommended. InnoDB engine performs significantly wor
 
 == Changelog ==
 
-= 2.10.1 =
+= 2.10.2 =
 
 * Changed to remove control characters in text extracted from PDF.
 * Adjusted the target tags for highlighting search keywords.
