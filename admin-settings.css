@@ -5,6 +5,7 @@ Full-Text Search Settings page.
 	margin-left: 1.5rem;
 }
 
+#search-target ul,
 #enable-auto-text ul {
 	margin: 0;
 }

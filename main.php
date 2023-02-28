@@ -647,7 +647,10 @@ class Full_Text_Search {
 			$this->pdfparser = new \Smalot\PdfParser\Parser( [], $config );
 		}
 		$pdffile = $this->pdfparser->parseFile( $file );
-		$text = trim( $pdffile->getText() );
+		$text = trim( (string) $pdffile->getText() );
+
+		// Remove control characters (including newline).
+		$text = preg_replace( '/[[:cntrl:]]/', '', $text );
 
 		/**
 		 * Filters text extracted from PDF file.
@@ -1011,7 +1014,7 @@ class Full_Text_Search {
 	 * @return string
 	 */
 	private function get_script_mark() {
-		$selectors = array( '#main', '#content', '#site-content', '#container', 'main', 'article' );
+		$selectors = array( 'article', '.hentry', '.wp-block-query', 'main', '#content', '#main' );
 
 		/**
 		 * Filter the content selector to highlight.
@@ -1043,22 +1046,21 @@ fullTextSearchHighlight = function() {
 	const keywords = {$keywords}, selectors = {$selectors};
 	for (let selector in selectors) {
 		let context = document.querySelectorAll(selectors[selector]);
-		if (!context.length) {
-			continue;
-		}
-		for (let i = 0; i < context.length; i++) {
-			for (let keyword in keywords ) {
-				var mark = new Mark(context[i]);
-				mark.mark(keywords[keyword], {
-					"element": "mark",
-					"className": "fts",
-					"separateWordSearch": false,
-					"iframes": false,
-					"exclude": ["script", "style", "input", "textarea", "footer *"],
-				});
+		if (context.length) {
+			for (let i = 0; i < context.length; i++) {
+				for (let keyword in keywords ) {
+					var mark = new Mark(context[i]);
+					mark.mark(keywords[keyword], {
+						"element": "mark",
+						"className": "fts",
+						"separateWordSearch": false,
+						"iframes": false,
+						"exclude": ["script", "style", "input", "textarea"],
+					});
+				}
 			}
+			break;
 		}
-		if (context.length) break;
 	}
 	if (typeof Cufon=="function") Cufon.refresh();
 }
