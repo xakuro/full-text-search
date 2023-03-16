@@ -6,7 +6,8 @@ Full-Text Search Settings page.
 }
 
 #search-target ul,
-#enable-auto-text ul {
+#enable-auto-text ul,
+#display_search_result ul {
 	margin: 0;
 }
 

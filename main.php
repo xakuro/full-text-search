@@ -1,10 +1,13 @@
 <?php
 /**
- * Full-Text Search class.
+ * Full-Text Search main.
  *
- * @since 1.0.0
+ * @package full-text-search
  */
 
+/**
+ * Full-Text Search main class.
+ */
 class Full_Text_Search {
 	const TABLE_NAME        = 'full_text_search_posts';
 	const CUSTOM_FIELD_NAME = 'full_text_search_search_text';
@@ -51,7 +54,7 @@ class Full_Text_Search {
 		add_action( 'add_attachment', array( $this, 'add_attachment' ), 10 );
 		add_action( 'attachment_updated', array( $this, 'update_attachment' ), 10, 3 );
 		add_action( 'deleted_post', array( $this, 'delete_post' ), 100, 1 );
-		add_filter( 'posts_search', array( $this, 'posts_search' ), 10, 2);
+		add_filter( 'posts_search', array( $this, 'posts_search' ), 10, 2 );
 		add_filter( 'posts_clauses_request', array( $this, 'posts_clauses_request' ), 99999, 2 );
 
 		if ( isset( $this->options['enable_attachment'] ) && 'disable' !== $this->options['enable_attachment'] ) {
@@ -68,11 +71,18 @@ class Full_Text_Search {
 
 		if ( isset( $this->options['display_score'] ) && $this->options['display_score'] ) {
 			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
-			add_filter( 'get_the_excerpt', array( $this, 'get_the_excerpt' ), 10, 2 );
+			if ( isset( $this->options['search_result_content'] ) && 'content' === $this->options['search_result_content'] ) {
+				add_filter( 'the_content', array( $this, 'filter_the_content_score' ), 100 );
+			} else {
+				add_filter( 'get_the_excerpt', array( $this, 'filter_the_content_score' ), 100, 2 );
+			}
 		}
 
 		if ( isset( $this->options['highlight'] ) && $this->options['highlight'] ) {
-			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_highlight_scripts' ) );
+			add_filter( 'the_title', array( $this, 'filter_the_title_highlight' ) );
+			add_filter( 'the_content', array( $this, 'filter_the_content_highlight' ) );
+			add_filter( 'get_the_excerpt', array( $this, 'filter_the_excerpt_highlight' ) );
+			// add_filter( 'post_link', array( $this, 'filter_post_link' ), 10, 2 );
 		}
 	}
 
@@ -103,7 +113,9 @@ class Full_Text_Search {
 	 */
 	public function posts_search( $search, $query ) {
 		if ( $search ) {
-			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
+			//$s = trim( sanitize_text_field( $query->get( 's', '' ) ) ); if ( ctype_alpha( $s ) && 3 >= strlen( $s ) ) { return $search; }
+
+			$enable_mode = $this->options['enable_mode'] ?? 'enable';
 			if (
 				( ( 'enable' === $enable_mode ) || ( 'search' === $enable_mode && $query->is_main_query() && ! $query->is_admin ) )
 				&& $this->is_exclude_from_search( $query )
@@ -255,9 +267,11 @@ class Full_Text_Search {
 	 */
 	public function posts_clauses_request( $clauses, $query ) {
 		if ( $query->is_search ) {
-			$enable_mode = isset( $this->options['enable_mode'] ) ? $this->options['enable_mode'] : 'enable';
 			$s = trim( sanitize_text_field( $query->get( 's', '' ) ) );
 
+			//if ( ctype_alpha( $s ) && 3 >= strlen( $s ) ) { return $clauses; }
+
+			$enable_mode = $this->options['enable_mode'] ?? 'enable';
 			if ( 
 				( 'enable' === $enable_mode || ( 'search' === $enable_mode && $query->is_main_query() && ! $query->is_admin ) )
 				&& ! empty( $s )
@@ -267,9 +281,9 @@ class Full_Text_Search {
 
 				$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
 
-				$join = isset( $clauses['join'] ) ? $clauses['join'] : '';
-				$fields = isset( $clauses['fields'] ) ? $clauses['fields'] : '';
-				$orderby = isset( $clauses['orderby'] ) ? $clauses['orderby'] : '';
+				$join    = $clauses['join'] ?? '';
+				$fields  = $clauses['fields'] ?? '';
+				$orderby = $clauses['orderby'] ?? '';
 
 				if ( 'mroonga' === $this->options['db_engine'] ) {
 					$s = "*D+W1:2,2:2,3:1,4:1 " . $this->normalize_search_string_for_mroonga( $s );
@@ -292,8 +306,8 @@ class Full_Text_Search {
 					$orderby = 'score DESC';
 				}
 
-				$clauses['join'] = $join;
-				$clauses['fields'] = $fields;
+				$clauses['join']    = $join;
+				$clauses['fields']  = $fields;
 				$clauses['orderby'] = $orderby;
 			}
 		}
@@ -366,19 +380,19 @@ class Full_Text_Search {
 
 		if ( 'attachment' == $post->post_type && empty( $keywords ) && ! $updated ) {
 			if  ( 'application/pdf' == $post->post_mime_type ) {
-				if ( isset( $this->options['auto_pdf'] ) ? $this->options['auto_pdf'] : true ) {
+				if ( $this->options['auto_pdf'] ?? true ) {
 					$status = 1;
 				}
 			} else if ( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' == $post->post_mime_type || 'application/msword' == $post->post_mime_type ) {
-				if ( isset( $this->options['auto_word'] ) ? $this->options['auto_word'] : true ) {
+				if ( $this->options['auto_word'] ?? true ) {
 					$status = 1;
 				}
 			} else if ( 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' == $post->post_mime_type ) {
-				if ( isset( $this->options['auto_excel'] ) ? $this->options['auto_excel'] : true ) {
+				if ( $this->options['auto_excel'] ?? true ) {
 					$status = 1;
 				}
 			} else if ( 'application/vnd.openxmlformats-officedocument.presentationml.presentation' == $post->post_mime_type ) {
-				if ( isset( $this->options['auto_powerpoint'] ) ? $this->options['auto_powerpoint'] : true ) {
+				if ( $this->options['auto_powerpoint'] ?? true ) {
 					$status = 1;
 				}
 			}
@@ -397,7 +411,7 @@ class Full_Text_Search {
 
 		if ( isset( $this->options['search_block'] ) && $this->options['search_block'] ) {
 			if ( function_exists( 'do_blocks' ) ) {
-				$data['post_content'] =  do_blocks( $data['post_content'] );
+				$data['post_content'] = do_blocks( $data['post_content'] );
 			}
 		}
 
@@ -406,7 +420,7 @@ class Full_Text_Search {
 		}
 
 		if ( ! isset( $this->options['search_html'] ) || ! $this->options['search_html'] ) {
-			$data['post_title'] = wp_strip_all_tags( $data['post_title'] );
+			$data['post_title']   = wp_strip_all_tags( $data['post_title'] );
 			$data['post_content'] = wp_strip_all_tags( $data['post_content'] );
 			$data['post_excerpt'] = wp_strip_all_tags( $data['post_excerpt'] );
 		}
@@ -425,7 +439,7 @@ class Full_Text_Search {
 
 		$wpdb->replace( $table_name, $data );
 
-		$status = isset( $data['status'] ) ? $data['status'] : 4;
+		$status = $data['status'] ?? 4;
 		if ( 1 === $status ) {
 			$filename = get_attached_file( $post_ID );
 			if ( file_exists( $filename ) ) {
@@ -550,26 +564,27 @@ class Full_Text_Search {
 	 */
 	public function get_default_options() {
 		return array( 
-			'plugin_version'    => FULL_TEXT_SEARCH_VERSION,
-			'db_type'           => '',          // '', 'mariadb' or 'mysql',
-			'db_engine'         => '',          // '', 'mroonga' or'innodb',
-			'sort_order'        => 'score',     // 'default' or 'score'.
-			'enable_mode'       => 'search',    // 'disable', 'enable' or 'search'.
-			'enable_attachment' => 'enable',    // 'disable', 'enable' or 'filter'.
-			'enable_zip'        => false,
-			'enable_pdf'        => false,
-			'enable_word'       => false,
-			'enable_excel'      => false,
-			'enable_powerpoint' => false,
-			'auto_pdf'          => true,
-			'auto_word'         => true,
-			'auto_excel'        => true,
-			'auto_powerpoint'   => true,
-			'display_score'     => true,
-			'highlight'         => true,
-			'search_shortcode'  => false,
-			'search_block'      => false,
-			'search_html'       => false,
+			'plugin_version'        => FULL_TEXT_SEARCH_VERSION,
+			'db_type'               => '',       // '', 'mariadb' or 'mysql'
+			'db_engine'             => '',       // '', 'mroonga' or'innodb'
+			'sort_order'            => 'score',  // 'default' or 'score'
+			'enable_mode'           => 'search', // 'disable', 'enable' or 'search'
+			'enable_attachment'     => 'enable', // 'disable', 'enable' or 'filter'
+			'enable_zip'            => false,
+			'enable_pdf'            => false,
+			'enable_word'           => false,
+			'enable_excel'          => false,
+			'enable_powerpoint'     => false,
+			'auto_pdf'              => true,
+			'auto_word'             => true,
+			'auto_excel'            => true,
+			'auto_powerpoint'       => true,
+			'display_score'         => true,
+			'highlight'             => true,
+			'search_result_content' => 'excerpt', // 'excerpt' or 'content'
+			'search_shortcode'      => false,
+			'search_block'          => false,
+			'search_html'           => false,
 		);
 	}
 
@@ -661,8 +676,6 @@ class Full_Text_Search {
 		 * @param int $file Path to the file.
 		 */
 		$text = apply_filters( 'full_text_search_pdf_text', $text, $file );
-
-		// $text = str_replace( array( "\r\n", "\r", "\n", "\t", '　' ), '', $text );
 
 		return $text;
 	}
@@ -935,22 +948,7 @@ class Full_Text_Search {
 	 */
 	public function enqueue_scripts() {
 		if ( is_search() ) {
-			wp_enqueue_style( 'full-text-search', plugins_url( '/full-text-search.css', __FILE__ ) );
-		}
-	}
-
-	/**
-	 * Enqueues highlight scripts for this search page.
-	 *
-	 * @since 2.9.0
-	 *
-	 * @return void
-	 */
-	public function enqueue_highlight_scripts() {
-		if ( is_search() ) {
-			$min = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-			wp_enqueue_script( 'mark', plugins_url( "/js/mark{$min}.js", __FILE__ ) );
-			wp_add_inline_script( 'mark', $this->get_script_mark() );
+			wp_enqueue_style( 'full-text-search', plugins_url( '/full-text-search.css', __FILE__ ), false, FULL_TEXT_SEARCH_VERSION );
 		}
 	}
 
@@ -1007,25 +1005,16 @@ class Full_Text_Search {
 	}
 
 	/**
-	 * Get JavaScript for highlighting.
+	 * Get highlighted HTML.
 	 *
-	 * @since 2.9.0
+	 * @since 2.11.0
 	 *
-	 * @return string
+	 * @param string $html HTML.
+	 * @param string $s    Search　text.
+	 * @return string HTML.
 	 */
-	private function get_script_mark() {
-		$selectors = array( 'article', '.hentry', '.wp-block-query', 'main', '#content', '#main' );
-
-		/**
-		 * Filter the content selector to highlight.
-		 *
-		 * @since 2.9.0
-		 *
-		 * @param array $selectors Selectors.
-		 */
-		$selectors = (array) apply_filters( 'full-text-search-highlight-selectors', $selectors );
-
-		$keywords = $this->get_search_keywords( get_search_query() );
+	private function get_highlight_html( $html, $s ) {
+		$keywords = $this->get_search_keywords( $s );
 
 		// Mixing of multi-byte characters and single-byte characters is not considered.
 		if ( function_exists( 'mb_convert_kana' ) ) {
@@ -1038,55 +1027,131 @@ class Full_Text_Search {
 			$keywords = $a;
 		}
 
-		$selectors = wp_json_encode( $selectors );
-		$keywords = wp_json_encode( $keywords );
+		foreach ( $keywords as &$keyword ) {
+			$keyword = preg_quote( $keyword, '/' ); // PHP 7.2
+		}
 
-		$script = <<< SCRIPT
-fullTextSearchHighlight = function() {
-	const keywords = {$keywords}, selectors = {$selectors};
-	for (let selector in selectors) {
-		let context = document.querySelectorAll(selectors[selector]);
-		if (context.length) {
-			for (let i = 0; i < context.length; i++) {
-				for (let keyword in keywords ) {
-					var mark = new Mark(context[i]);
-					mark.mark(keywords[keyword], {
-						"element": "mark",
-						"className": "fts",
-						"separateWordSearch": false,
-						"iframes": false,
-						"exclude": ["script", "style", "input", "textarea"],
-					});
+		$pattern = '/(' . implode( '|', $keywords ) .')/iu';
+
+		$textarr = wp_html_split( $html );
+		$ignore_elements = array( 'mark', '/mark', 'code', '/code', 'pre', '/pre', 'option', '/option' );
+		$inside_block = array();
+		foreach ( $textarr as &$element ) {
+			if ( 0 === strpos( $element, '<' ) ) {
+				$offset = 1;
+				$is_end_tag = false;
+
+				if ( 1 === strpos( $element, '/' ) ) {
+					$offset = 2;
+					$is_end_tag = true;
+				}
+
+				preg_match( '/^.+(\b|\n|$)/U', substr( $element, $offset ), $matches );
+				if ( $matches && in_array( $matches[0], $ignore_elements, true ) ) {
+					if ( ! $is_end_tag ) {
+						array_unshift( $inside_block, $matches[0] );
+					} elseif ( $inside_block && $matches[0] === $inside_block[0] ) {
+						array_shift( $inside_block );
+					}
+				}
+			} else {
+				if ( empty( $inside_block ) ) {
+					$element = preg_replace( $pattern, '<mark class="fts">' . '$1' . '</mark>', $element );
 				}
 			}
-			break;
 		}
-	}
-	if (typeof Cufon=="function") Cufon.refresh();
-}
-window.addEventListener('DOMContentLoaded', fullTextSearchHighlight);
-SCRIPT;
 
-		return $script;
+		return join( $textarr );
+	}
+
+	/**
+	 * Filters the post html.
+	 *
+	 * @since 2.11.0
+	 *
+	 * @param string $html The post html.
+	 * @param string $type Type 'title', 'content' or 'excerpt'.
+	 * @return string Post html.
+	 */
+	private function filter_highlight( $html, $type ) {
+		if ( is_main_query() /* && in_the_loop() */ ) {
+			if ( is_search() ) {
+				if ( 'title' === $type || ( isset( $this->options['search_result_content'] ) && $type === $this->options['search_result_content'] ) ) {
+					$html = $this->get_highlight_html( $html, get_search_query( false ) );
+				}
+			} else if ( isset( $_GET['highlight'] ) ) {
+				// $html = $this->get_highlight_html( $html, sanitize_text_field( wp_unslash( $_GET['highlight'] ) ) );
+			}
+		}
+		return $html;
+	}
+
+	/**
+	 * Filters the post title.
+	 *
+	 * @since 2.11.0
+	 *
+	 * @param string $title Post title.
+	 * @return string Post title.
+	 */
+	public function filter_the_title_highlight( $title ) {
+		return $this->filter_highlight( $title, 'title' );
+	}
+
+	/**
+	 * Filters the post content.
+	 *
+	 * @since 2.11.0
+	 *
+	 * @param string $content Post content.
+	 * @return string Post content.
+	 */
+	public function filter_the_content_highlight( $content ) {
+		return $this->filter_highlight( $content, 'content' );
 	}
 
 	/**
 	 * Filters the post excerpt.
 	 *
-	 * @since 2.4.0
+	 * @since 2.11.0
 	 *
-	 * @param string  $post_excerpt The post excerpt.
-	 * @param WP_Post $post         Post object.
+	 * @param string $post_excerpt Post excerpt.
 	 * @return string Post excerpt.
 	 */
-	public function get_the_excerpt( $excerpt, $post ) {
-		if ( is_search() && is_main_query() ) {
-			$excerpt = 
-				'<div class="full-text-search-result-items"><span class="full-text-search-score">' . 
-				sprintf( __( 'Search score: %01.2f', 'full-text-search' ), $post->search_score ) . 
-				'</span></div>' . $excerpt;
+	public function filter_the_excerpt_highlight( $post_excerpt  ) {
+		return $this->filter_highlight( $post_excerpt, 'excerpt' );
+	}
+
+	/**
+	 * Filters the permalink for a post.
+	 *
+	 * @since 2.11.0
+	 *
+	 * @param string  $permalink Post permalink.
+	 * @param WP_Post $post      Post.
+	 * @return string|false Post permalink. False if the post does not exist.
+	 */
+	public function filter_post_link( $permalink, $post ) {
+		if ( is_search() && is_main_query() /* && in_the_loop() */ ) {
+			$permalink = add_query_arg( 'highlight', urlencode( get_search_query( false ) ), $permalink );
 		}
-		return $excerpt;
+		return $permalink;
+	}
+
+	/**
+	 * Filters post content or post excerpt.
+	 *
+	 * @since 2.11.0
+	 *
+	 * @param string       $content Post content or post excerpt.
+	 * @param WP_Post|null $post Post. Default null.
+	 * @return string Post content or post excerpt.
+	 */
+	public function filter_the_content_score( $content, $post = null ) {
+		if ( is_search() && is_main_query() /* && in_the_loop() */ ) {
+			return $this->get_the_score( $post ) . $content;
+		}
+		return $content;
 	}
 
 	/**
@@ -1121,26 +1186,40 @@ SCRIPT;
 	public function activation() {
 		global $wp_version, $wpdb;
 
-		if ( $wpdb->use_mysqli ) {
-			$mysql_server_type = mysqli_get_server_info( $wpdb->dbh );
-		} else {
-			// @codingStandardsIgnoreStart
-			$mysql_server_type = mysql_get_server_info( $wpdb->dbh );
-			// @codingStandardsIgnoreEnd
+		switch( get_class( $wpdb ) ) {
+			case 'wpdb':
+				if ( $wpdb->use_mysqli ) {
+					$mysql_server_type = mysqli_get_server_info( $wpdb->dbh );
+				} else {
+					// @codingStandardsIgnoreStart
+					$mysql_server_type = mysql_get_server_info( $wpdb->dbh );
+					// @codingStandardsIgnoreEnd
+				}
+
+				if ( stristr( $mysql_server_type, 'mariadb' ) ) {
+					$db_type = 'mariadb';
+				} else {
+					$db_type = 'mysql';
+				}
+
+				$enable_mroonga = $wpdb->get_var( "SELECT COUNT(*) FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='Mroonga'" );
+				if ( $enable_mroonga ) {
+					$engine = 'mroonga';
+				} else {
+					$db_version = $wpdb->get_var( 'SELECT VERSION()' );
+					if ( 'mysql' === $db_type && version_compare( '5.6', $db_version, '<=' ) ) {
+						$engine = 'innodb';
+					}
+				}
+				break;
+			case 'Perflab_SQLite_DB':
+				// $db_type = 'sqlite';
+				// $engine = 'sqlite';
+				break;
 		}
 
-		$db_type = stristr( $mysql_server_type, 'mariadb' ) ? 'mariadb' : 'mysql';
-		$db_version = $wpdb->get_var( 'SELECT VERSION()' );
-
-		$enable_mroonga = $wpdb->get_var( "SELECT COUNT(*) FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='Mroonga'" );
-		if ( $enable_mroonga ) {
-			$engine = 'mroonga';
-		} else {
-			if ( 'mysql' === $db_type && version_compare( '5.6', $db_version, '<=' ) ) {
-				$engine = 'innodb';
-			}
-		}
 		if ( ! isset( $engine ) ) {
+			delete_option( 'full_text_search_options' );
 			return;
 		}
 

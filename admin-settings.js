@@ -87,14 +87,6 @@ var fullTextSearchSettings;
 			};
 		check_disabled();
 		section.find('input:radio').on('change', check_disabled);
-
-		var mode = $('#field_enable_mode'),
-			mode_changed = function() { 
-				$('#field_boolean_logic').prop('disabled', 'disable' == mode.val());
-				$('#field_sort_order').prop('disabled', 'disable' == mode.val());
-			};
-		mode_changed();
-		mode.change(mode_changed);
 	};
 
 	$(document).ready(function() {

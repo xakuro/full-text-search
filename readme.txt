@@ -2,9 +2,9 @@
 Contributors: ishitaka
 Tags: full-text,search,fulltext,mroonga
 Requires at least: 4.9
-Tested up to: 6.1
-Requires PHP: 7.1
-Stable tag: 2.10.2
+Tested up to: 6.2
+Requires PHP: 7.2
+Stable tag: 2.11.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,11 @@ Mroonga engine is strongly recommended. InnoDB engine performs significantly wor
 
 == Changelog ==
 
+= 2.11.0 =
+
+* Changed not to use mark.js.
+* Code refactoring.
+
 = 2.10.2 =
 
 * Changed to remove control characters in text extracted from PDF.
@@ -73,7 +78,6 @@ Mroonga engine is strongly recommended. InnoDB engine performs significantly wor
 
 * Changed default setting values.
 * Added escaping to multiple translate texts for enhanced security.
-* Code refactoring.
 
 = 2.9.2 =
 

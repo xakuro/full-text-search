@@ -1,9 +1,12 @@
 <?php
+/**
+ * Full-Text Search admin.
+ *
+ * @package full-text-search
+ */
 
 /**
  * Full-Text Search admin class.
- *
- * @since 1.0.0
  */
 class Full_Text_Search_Admin {
 	private $parent;
@@ -103,8 +106,8 @@ class Full_Text_Search_Admin {
 	public function add_settings_page_tabs() {
 		$screen = get_current_screen();
 		$screen->add_help_tab( array(
-			'id' => 'overview',
-			'title' => __( 'Overview', 'full-text-search' ),
+			'id'      => 'overview',
+			'title'   => __( 'Overview', 'full-text-search' ),
 			'content' => '<p>' . __( 'This screen is used to set up and maintain a full-text search.', 'full-text-search' ) . '</p>'
 		) );
 	}
@@ -175,7 +178,7 @@ class Full_Text_Search_Admin {
 			'tab-count-' . count( $tabs ),
 		);
 
-		$current_tab = ( isset( $_GET['tab'] ) ? $_GET['tab'] : '' );
+		$current_tab = $_GET['tab'] ?? '';
 
 		$post_types = get_post_types( array( 'exclude_from_search' => false ) );
 		$sql_posts = "'" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "'";
@@ -337,7 +340,7 @@ class Full_Text_Search_Admin {
 		add_settings_section( 'full_text_search_search_section', __( 'Full-Text Search Settings', 'full-text-search' ), '__return_empty_string', 'full_text_search_group' );
 		add_settings_field( 'Enable full-text search', __( 'Full-text search', 'full-text-search' ), array( $this, 'field_enable_mode' ), 'full_text_search_group', 'full_text_search_search_section' );
 		add_settings_field( 'Sort order', __( 'Sort order', 'full-text-search' ), array( $this, 'field_sort_order' ), 'full_text_search_group', 'full_text_search_search_section' );
-		add_settings_field( 'Display search result', __( 'Display search result', 'full-text-search' ), array( $this, 'field_display_search_result' ), 'full_text_search_group', 'full_text_search_search_section' );
+		add_settings_field( 'Search result', __( 'Search result', 'full-text-search' ), array( $this, 'field_display_search_result' ), 'full_text_search_group', 'full_text_search_search_section' );
 		add_settings_field( 'Search target', __( 'Search target', 'full-text-search' ), array( $this, 'field_search_target' ), 'full_text_search_group', 'full_text_search_search_section' );
 		add_settings_field( 'Enable attachment search', __( 'Attachment search', 'full-text-search' ), array( $this, 'field_enable_attachment' ), 'full_text_search_group', 'full_text_search_search_section' );
 		add_settings_field( 'Enable auto text', __( 'Automatic text extraction', 'full-text-search' ), array( $this, 'field_enable_auto_text' ), 'full_text_search_group', 'full_text_search_search_section' );
@@ -349,7 +352,7 @@ class Full_Text_Search_Admin {
 	 * @since 1.3.0
 	 */
 	public function field_enable_mode() {
-		$enable_mode = isset( $this->parent->options['enable_mode'] ) ? $this->parent->options['enable_mode'] : 'enable';
+		$enable_mode = $this->parent->options['enable_mode'] ?? 'enable';
 
 		echo '<select id="field_enable_mode" name="full_text_search_options[enable_mode]">';
 		echo '<option value="disable"' . ( 'disable' === $enable_mode ? ' selected' : '') . '>' . __( 'Disable', 'full-text-search' ) . '</option>';
@@ -364,7 +367,7 @@ class Full_Text_Search_Admin {
 	 * @since 2.3.0
 	 */
 	public function field_sort_order() {
-		$sort_order = isset( $this->parent->options['sort_order'] ) ? $this->parent->options['sort_order'] : 'score';
+		$sort_order = $this->parent->options['sort_order'] ?? 'score';
 
 		echo '<select id="field_sort_order" name="full_text_search_options[sort_order]">';
 		echo '<option value="default"' . ( 'default' === $sort_order ? ' selected' : '') . '>' . __( 'Default', 'full-text-search' ) . '</option>';
@@ -373,18 +376,26 @@ class Full_Text_Search_Admin {
 	}
 
 	/**
-	 * Register Display search result field.
+	 * Register Search result field.
 	 *
 	 * @since 2.4.0
 	 * @since 2.9.0 Add search keyword highlight field.
 	 */
 	public function field_display_search_result() {
-		$display_score = isset( $this->parent->options['display_score'] ) ? $this->parent->options['display_score'] : false;
-		$highlight = isset( $this->parent->options['highlight'] ) ? $this->parent->options['highlight'] : false;
+		$search_result_content = $this->parent->options['search_result_content'] ?? 'excerpt';
+		$display_score         = $this->parent->options['display_score'] ?? false;
+		$highlight             = $this->parent->options['highlight'] ?? false;
 
-		echo '<fieldset id="display_search_result"><legend class="screen-reader-text"><span>' . __( 'Display search result', 'full-text-search' ) . '</span></legend>';
-		echo '<p><label for="display_score"><input type="checkbox" name="full_text_search_options[display_score]" id="display_score" value="1" ' . checked( $display_score, true, false ) . '> ' . __( 'Search Score', 'full-text-search' ) . '</label></p>';
-		echo '<p><label for="highlight"><input type="checkbox" name="full_text_search_options[highlight]" id="highlight" value="1" ' . checked( $highlight, true, false ) . '> ' . __( 'Highlight search terms', 'full-text-search' ) . '</label></p>';
+		echo '<fieldset id="display_search_result"><legend class="screen-reader-text"><span>' . __( 'Search result', 'full-text-search' ) . '</span></legend>';
+		echo '<ul>';
+		echo '<li><label for="display_score"><input type="checkbox" name="full_text_search_options[display_score]" id="display_score" value="1" ' . checked( $display_score, true, false ) . '> ' . __( 'Search Score', 'full-text-search' ) . '</label></li>';
+		echo '<li><label for="highlight"><input type="checkbox" name="full_text_search_options[highlight]" id="highlight" value="1" ' . checked( $highlight, true, false ) . '> ' . __( 'Highlight search terms', 'full-text-search' ) . '</label></li>';
+		echo '<li><label for="field_search_result_content">' . __( 'Search result content:', 'full-text-search' ) . ' ';
+		echo '<select id="field_search_result_content" name="full_text_search_options[search_result_content]">';
+		echo '<option value="excerpt"' . ( 'excerpt' === $search_result_content ? ' selected' : '') . '>' . __( 'Excerpt', 'full-text-search' ) . '</option>';
+		echo '<option value="content"' . ( 'content' === $search_result_content ? ' selected' : '') . '>' . __( 'Content', 'full-text-search' ) . '</option>';
+		echo '</select></label></li>';
+		echo '</ul>';
 		echo '</fieldset>';
 	}
 
@@ -394,12 +405,12 @@ class Full_Text_Search_Admin {
 	 * @since 1.6.0
 	 */
 	public function field_enable_attachment() {
-		$enable_attachment = isset( $this->parent->options['enable_attachment'] ) ? $this->parent->options['enable_attachment'] : 'enable';
-		$zip = isset( $this->parent->options['enable_zip'] ) ? $this->parent->options['enable_zip'] : false;
-		$pdf = isset( $this->parent->options['enable_pdf'] ) ? $this->parent->options['enable_pdf'] : false;
-		$word = isset( $this->parent->options['enable_word'] ) ? $this->parent->options['enable_word'] : false;
-		$excel = isset( $this->parent->options['enable_excel'] ) ? $this->parent->options['enable_excel'] : false;
-		$powerpoint = isset( $this->parent->options['enable_powerpoint'] ) ? $this->parent->options['enable_powerpoint'] : false;
+		$enable_attachment = $this->parent->options['enable_attachment'] ?? 'enable';
+		$zip               = $this->parent->options['enable_zip'] ?? false;
+		$pdf               = $this->parent->options['enable_pdf'] ?? false;
+		$word              = $this->parent->options['enable_word'] ?? false;
+		$excel             = $this->parent->options['enable_excel'] ?? false;
+		$powerpoint        = $this->parent->options['enable_powerpoint'] ?? false;
 
 		echo '<fieldset id="enable-attachment"><legend class="screen-reader-text"><span>' . __( 'Attachment search', 'full-text-search' ) . '</span></legend>';
 
@@ -424,10 +435,10 @@ class Full_Text_Search_Admin {
 	 * @since 2.0.0
 	 */
 	public function field_enable_auto_text() {
-		$pdf = isset( $this->parent->options['auto_pdf'] ) ? $this->parent->options['auto_pdf'] : true;
-		$word = isset( $this->parent->options['auto_word'] ) ? $this->parent->options['auto_word'] : true;
-		$excel = isset( $this->parent->options['auto_excel'] ) ? $this->parent->options['auto_excel'] : true;
-		$powerpoint = isset( $this->parent->options['auto_powerpoint'] ) ? $this->parent->options['auto_powerpoint'] : true;
+		$pdf        = $this->parent->options['auto_pdf'] ?? true;
+		$word       = $this->parent->options['auto_word'] ?? true;
+		$excel      = $this->parent->options['auto_excel'] ?? true;
+		$powerpoint = $this->parent->options['auto_powerpoint'] ?? true;
 
 		echo '<fieldset id="enable-auto-text"><legend class="screen-reader-text"><span>' . __( 'Automatic text extraction', 'full-text-search' ) . '</span></legend>';
 		echo '<ul>';
@@ -446,9 +457,9 @@ class Full_Text_Search_Admin {
 	 * @since 2.10.0
 	 */
 	public function field_search_target() {
-		$shortcode = isset( $this->parent->options['search_shortcode'] ) ? $this->parent->options['search_shortcode'] : false;
-		$block = isset( $this->parent->options['search_block'] ) ? $this->parent->options['search_block'] : false;
-		$html = isset( $this->parent->options['search_html'] ) ? $this->parent->options['search_html'] : false;
+		$shortcode = $this->parent->options['search_shortcode'] ?? false;
+		$block     = $this->parent->options['search_block'] ?? false;
+		$html      = $this->parent->options['search_html'] ?? false;
 
 		echo '<fieldset id="search-target"><legend class="screen-reader-text"><span>' . __( 'Search target', 'full-text-search' ) . '</span></legend>';
 		echo '<ul>';
@@ -468,8 +479,10 @@ class Full_Text_Search_Admin {
 	public function sanitize( $input ) {
 		$this->parent->options['enable_mode'] = $input['enable_mode'];
 		$this->parent->options['sort_order'] = $input['sort_order'];
+
 		$this->parent->options['display_score'] = ( isset( $input['display_score'] ) && '1' === $input['display_score'] );
 		$this->parent->options['highlight'] = ( isset( $input['highlight'] ) && '1' === $input['highlight'] );
+		$this->parent->options['search_result_content'] = $input['search_result_content'];
 
 		$this->parent->options['enable_attachment'] = $input['enable_attachment'];
 		if ( 'filter' === $this->parent->options['enable_attachment'] ) {

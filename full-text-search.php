@@ -1,23 +1,30 @@
 <?php
-/*
-Plugin Name: Full-Text Search
-Plugin URI: https://xakuro.com/wordpress/
-Description: Replaces site search with full-text search (Japanese support).
-Author: Xakuro
-Author URI: https://xakuro.com/
-License: GPLv2
-Requires at least: 4.9
-Requires PHP: 7.1
-Version: 2.10.2
-Text Domain: full-text-search
-Domain Path: /languages/
-*/
+/**
+ * Full-Text Search
+ *
+ * @package full-text-search
+ * @author  ishitaka
+ * @license GPL-2.0-or-later
+ *
+ * @wordpress-plugin
+ * Plugin Name:       Full-Text Search
+ * Plugin URI:        https://xakuro.com/wordpress/
+ * Description:       Replaces site search with full-text search.
+ * Version:           2.11.0
+ * Requires at least: 4.9
+ * Requires PHP:      7.2
+ * Author:            Xakuro
+ * Author URI:        https://xakuro.com/
+ * License:           GPL v2 or later
+ * Text Domain:       full-text-search
+ * Domain Path:       /languages
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'FULL_TEXT_SEARCH_VERSION', '2.10.2' );
+define( 'FULL_TEXT_SEARCH_VERSION', '2.11.0' );
 
 require_once __DIR__ . '/main.php';
 
