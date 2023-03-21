@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName
 /**
  * Full-Text Search main.
  *
@@ -9,11 +9,27 @@
  * Full-Text Search main class.
  */
 class Full_Text_Search {
-	const TABLE_NAME        = 'full_text_search_posts';
 	const CUSTOM_FIELD_NAME = 'full_text_search_search_text';
 
+	/**
+	 * Options.
+	 *
+	 * @var array
+	 */
 	public $options;
+
+	/**
+	 * Full-Text Search admin.
+	 *
+	 * @var Full_Text_Search_Admin
+	 */
 	public $admin;
+
+	/**
+	 * Pdf parser.
+	 *
+	 * @var \Smalot\PdfParser\Parser
+	 */
 	public $pdfparser;
 
 	/**
@@ -82,7 +98,7 @@ class Full_Text_Search {
 			add_filter( 'the_title', array( $this, 'filter_the_title_highlight' ) );
 			add_filter( 'the_content', array( $this, 'filter_the_content_highlight' ) );
 			add_filter( 'get_the_excerpt', array( $this, 'filter_the_excerpt_highlight' ) );
-			// add_filter( 'post_link', array( $this, 'filter_post_link' ), 10, 2 );
+			// // add_filter( 'post_link', array( $this, 'filter_post_link' ), 10, 2 );
 		}
 	}
 
@@ -95,7 +111,8 @@ class Full_Text_Search {
 		global $pagenow;
 
 		if ( 'plugins.php' === $pagenow || 'index.php' === $pagenow ) {
-			printf( '<div class="notice notice-warning"><p><b>%s</b>: %s</p></div>',
+			printf(
+				'<div class="notice notice-warning"><p><b>%s</b>: %s</p></div>',
 				esc_html( __( 'Full-Text Search', 'full-text-search' ) ),
 				esc_html( __( 'Requires MySQL 5.6 or higher, or Mroonga engine.', 'full-text-search' ) )
 			);
@@ -113,8 +130,6 @@ class Full_Text_Search {
 	 */
 	public function posts_search( $search, $query ) {
 		if ( $search ) {
-			//$s = trim( sanitize_text_field( $query->get( 's', '' ) ) ); if ( ctype_alpha( $s ) && 3 >= strlen( $s ) ) { return $search; }
-
 			$enable_mode = $this->options['enable_mode'] ?? 'enable';
 			if (
 				( ( 'enable' === $enable_mode ) || ( 'search' === $enable_mode && $query->is_main_query() && ! $query->is_admin ) )
@@ -151,8 +166,8 @@ class Full_Text_Search {
 	private function normalize_search_string_for_mroonga( $input ) {
 		$ws = preg_split( '//u', $input . ' ', -1, PREG_SPLIT_NO_EMPTY );
 		$in = false;
-		$w = '';
-		$a = array();
+		$w  = '';
+		$a  = array();
 		foreach ( $ws as $s ) {
 			if ( '　' === $s && ! $in ) {
 				$s = ' ';
@@ -184,27 +199,27 @@ class Full_Text_Search {
 		$ws = preg_split( '//u', $input . ' ', -1, PREG_SPLIT_NO_EMPTY );
 		$in = false;
 		$or = false;
-		$w = '';
-		$a = array();
+		$w  = '';
+		$a  = array();
 		foreach ( $ws as $s ) {
 			if ( '　' === $s && ! $in ) {
 				$s = ' ';
 			}
 			if ( ' ' === $s && ! $in ) {
 				if ( 'OR' === $w ) {
-					$w = '';
+					$w  = '';
 					$or = true;
 				}
 				if ( 'AND' === $w ) {
-					$w = '';
+					$w  = '';
 					$or = false;
 				}
-				if ( '' !== $w && ' ' !== $w  ) {
-					if ( ! in_array( substr( $w, 0, 1 ), array( '+', '-', '~', '@' ) ) ) {
+				if ( '' !== $w && ' ' !== $w ) {
+					if ( ! in_array( substr( $w, 0, 1 ), array( '+', '-', '~', '@' ), true ) ) {
 						if ( $or ) {
 							$count = count( $a );
 							if ( $count > 0 ) {
-								$a[$count - 1] = ltrim( $a[$count - 1], '+' );
+								$a[ $count - 1 ] = ltrim( $a[ $count - 1 ], '+' );
 							}
 							$or = false;
 						} else {
@@ -214,17 +229,17 @@ class Full_Text_Search {
 					$a[] = $w;
 				}
 				$w = '';
-			} else if ( ( '(' === $s  || ')' === $s ) && ! $in ) {
+			} elseif ( ( '(' === $s || ')' === $s ) && ! $in ) {
 				if ( $or ) {
 					$count = count( $a );
 					if ( $count > 0 ) {
-						$a[$count - 1] = ltrim( $a[$count - 1], '+' );
+						$a[ $count - 1 ] = ltrim( $a[ $count - 1 ], '+' );
 					}
 					$or = false;
 				}
 				$a[] = $w;
 				$a[] = $s;
-				$w = '';
+				$w   = '';
 			} else {
 				$w .= $s;
 				if ( '"' === $s ) {
@@ -248,7 +263,7 @@ class Full_Text_Search {
 		if ( 'any' !== $post_type && ! empty( $post_type ) ) {
 			$in_search_post_types = get_post_types( array( 'exclude_from_search' => false ) );
 			foreach ( (array) $post_type as $_post_type ) {
-				if ( ! isset( $in_search_post_types[$_post_type] ) ) {
+				if ( ! isset( $in_search_post_types[ $_post_type ] ) ) {
 					return false;
 				}
 			}
@@ -269,35 +284,30 @@ class Full_Text_Search {
 		if ( $query->is_search ) {
 			$s = trim( sanitize_text_field( $query->get( 's', '' ) ) );
 
-			//if ( ctype_alpha( $s ) && 3 >= strlen( $s ) ) { return $clauses; }
-
 			$enable_mode = $this->options['enable_mode'] ?? 'enable';
-			if ( 
+			if (
 				( 'enable' === $enable_mode || ( 'search' === $enable_mode && $query->is_main_query() && ! $query->is_admin ) )
 				&& ! empty( $s )
 				&& $this->is_exclude_from_search( $query )
 			) {
 				global $wpdb;
 
-				$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
-
 				$join    = $clauses['join'] ?? '';
 				$fields  = $clauses['fields'] ?? '';
 				$orderby = $clauses['orderby'] ?? '';
 
 				if ( 'mroonga' === $this->options['db_engine'] ) {
-					$s = "*D+W1:2,2:2,3:1,4:1 " . $this->normalize_search_string_for_mroonga( $s );
+					$s = '*D+W1:2,2:2,3:1,4:1 ' . $this->normalize_search_string_for_mroonga( $s );
 				} else {
 					$s = $this->normalize_search_string_for_innodb( $s );
 				}
 
 				$join .= $wpdb->prepare(
-					" INNER JOIN (" .
-					"SELECT ID, MATCH(keywords, post_title, post_content, post_excerpt) AGAINST(%s IN BOOLEAN MODE) AS score " .
-					"FROM {$table_name} " .
-					"WHERE MATCH(keywords, post_title, post_content, post_excerpt) AGAINST(%s IN BOOLEAN MODE)" .
+					' INNER JOIN (SELECT ID, MATCH(keywords, post_title, post_content, post_excerpt) AGAINST(%s IN BOOLEAN MODE) AS score ' .
+					"FROM {$wpdb->prefix}full_text_search_posts WHERE MATCH(keywords, post_title, post_content, post_excerpt) AGAINST(%s IN BOOLEAN MODE)" .
 					") matched_posts ON matched_posts.ID = {$wpdb->posts}.ID",
-					$s, $s
+					$s,
+					$s
 				);
 
 				$fields .= ',score AS search_score';
@@ -349,6 +359,7 @@ class Full_Text_Search {
 
 				if ( count( $post_mime_types ) ) {
 					$post_mime_type = implode( ' OR ', $post_mime_types );
+
 					$where .= " AND ({$wpdb->posts}.post_type <> 'attachment' OR {$wpdb->posts}.post_type = 'attachment' AND ({$post_mime_type}))";
 				}
 			}
@@ -364,34 +375,32 @@ class Full_Text_Search {
 	 * @param int     $post_ID  Post ID.
 	 * @param WP_Post $post     Post object.
 	 * @param string  $keywords Keywords (Search text).
-	 * @param bool    $update   Whether this is an existing post being updated.
+	 * @param bool    $updated  Whether this is an existing post being updated.
 	 * @return void
 	 */
 	private function update_index_post( $post_ID, $post, $keywords, $updated = false ) {
 		global $wpdb;
 
-		$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
-
 		if ( null === $keywords ) {
-			$keywords = get_post_meta( $post_ID, Full_Text_Search::CUSTOM_FIELD_NAME, true );
+			$keywords = get_post_meta( $post_ID, self::CUSTOM_FIELD_NAME, true );
 		}
 
 		$status = 0;
 
-		if ( 'attachment' == $post->post_type && empty( $keywords ) && ! $updated ) {
-			if  ( 'application/pdf' == $post->post_mime_type ) {
+		if ( 'attachment' === $post->post_type && empty( $keywords ) && ! $updated ) {
+			if ( 'application/pdf' === $post->post_mime_type ) {
 				if ( $this->options['auto_pdf'] ?? true ) {
 					$status = 1;
 				}
-			} else if ( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' == $post->post_mime_type || 'application/msword' == $post->post_mime_type ) {
+			} elseif ( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' === $post->post_mime_type || 'application/msword' === $post->post_mime_type ) {
 				if ( $this->options['auto_word'] ?? true ) {
 					$status = 1;
 				}
-			} else if ( 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' == $post->post_mime_type ) {
+			} elseif ( 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' === $post->post_mime_type ) {
 				if ( $this->options['auto_excel'] ?? true ) {
 					$status = 1;
 				}
-			} else if ( 'application/vnd.openxmlformats-officedocument.presentationml.presentation' == $post->post_mime_type ) {
+			} elseif ( 'application/vnd.openxmlformats-officedocument.presentationml.presentation' === $post->post_mime_type ) {
 				if ( $this->options['auto_powerpoint'] ?? true ) {
 					$status = 1;
 				}
@@ -406,7 +415,7 @@ class Full_Text_Search {
 			'post_content'  => $post->post_content,
 			'post_excerpt'  => $post->post_excerpt,
 			'keywords'      => $keywords,
-			'status'        => $status
+			'status'        => $status,
 		);
 
 		if ( isset( $this->options['search_block'] ) && $this->options['search_block'] ) {
@@ -437,7 +446,7 @@ class Full_Text_Search {
 		 */
 		$data = apply_filters( 'full_text_search_index_post', $data, $post_ID, $post );
 
-		$wpdb->replace( $table_name, $data );
+		$wpdb->replace( $wpdb->prefix . 'full_text_search_posts', $data ); // WPCS: db call ok; no-cache ok.
 
 		$status = $data['status'] ?? 4;
 		if ( 1 === $status ) {
@@ -446,14 +455,14 @@ class Full_Text_Search {
 				if ( 'application/pdf' === $post->post_mime_type ) {
 					try {
 						$keywords = $this->get_text_from_pdf_file( $filename );
-						$status = 0;
+						$status   = 0;
 					} catch ( Exception $e ) {
 						$status = 2;
 					}
-				} else if ( 'application/msword' === $post->post_mime_type ) {
+				} elseif ( 'application/msword' === $post->post_mime_type ) {
 					try {
 						$keywords = $this->get_text_from_doc_file( $filename );
-						$status = 0;
+						$status   = 0;
 					} catch ( Exception $e ) {
 						$error = $e->getMessage();
 						if ( 'Unsupported file format.' === $error ) {
@@ -462,38 +471,41 @@ class Full_Text_Search {
 							$status = 4;
 						}
 					}
-				} else if ( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' === $post->post_mime_type ) {
+				} elseif ( 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' === $post->post_mime_type ) {
 					try {
 						$keywords = $this->get_text_from_docx_file( $filename );
-						$status = 0;
+						$status   = 0;
 					} catch ( Exception $e ) {
 						$status = 4;
 					}
-				} else if ( 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' === $post->post_mime_type ) {
+				} elseif ( 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' === $post->post_mime_type ) {
 					try {
 						$keywords = $this->get_text_from_excel_file( $filename );
-						$status = 0;
+						$status   = 0;
 					} catch ( Exception $e ) {
 						$status = 4;
 					}
-				} else if ( 'application/vnd.openxmlformats-officedocument.presentationml.presentation' === $post->post_mime_type ) {
+				} elseif ( 'application/vnd.openxmlformats-officedocument.presentationml.presentation' === $post->post_mime_type ) {
 					try {
 						$keywords = $this->get_text_from_powerpoint_file( $filename );
-						$status = 0;
+						$status   = 0;
 					} catch ( Exception $e ) {
 						$status = 4;
 					}
 				}
 
 				if ( ! empty( $keywords ) ) {
-					update_post_meta( $post_ID, Full_Text_Search::CUSTOM_FIELD_NAME, $keywords );
+					update_post_meta( $post_ID, self::CUSTOM_FIELD_NAME, $keywords );
 				}
 
-				$wpdb->query( $wpdb->prepare( "UPDATE {$table_name} SET keywords=%s,status=%d WHERE ID=%d;",
-					$keywords,
-					$status,
-					$post->ID
-				) );
+				$wpdb->query(
+					$wpdb->prepare(
+						"UPDATE {$wpdb->prefix}full_text_search_posts SET keywords = %s,status = %d WHERE ID = %d;",
+						$keywords,
+						$status,
+						$post->ID
+					)
+				); // WPCS: db call ok; no-cache ok.
 			}
 		}
 	}
@@ -510,7 +522,7 @@ class Full_Text_Search {
 	 */
 	public function update_post( $post_ID, $post, $update ) {
 		$post_types = get_post_types( array( 'exclude_from_search' => false ) );
-		if ( in_array( $post->post_type, $post_types ) && $post->post_status !== 'auto-draft' ) {
+		if ( in_array( $post->post_type, $post_types, true ) && 'auto-draft' !== $post->post_status ) {
 			$this->update_index_post( $post_ID, $post, null, $update );
 		}
 	}
@@ -533,11 +545,13 @@ class Full_Text_Search {
 	 *
 	 * @since 1.8.0
 	 *
-	 * @param int $post_ID Post ID.
+	 * @param int     $attachment_id     Attachment ID.
+	 * @param WP_Post $attachment_after  Attachment post object before the update.
+	 * @param WP_Post $attachment_before Attachment post object after the update.
 	 * @return void
 	 */
-	public function update_attachment( $post_ID, $post_after, $post_before ) {
-		$this->update_post( $post_ID, $post_after, true );
+	public function update_attachment( $attachment_id, $attachment_after, $attachment_before ) {
+		$this->update_post( $attachment_id, $attachment_after, true );
 	}
 
 	/**
@@ -545,14 +559,13 @@ class Full_Text_Search {
 	 *
 	 * @since 1.2.0
 	 *
-	 * @param int $postid Post ID.
+	 * @param int $post_id Post ID.
 	 * @return void
 	 */
 	public function delete_post( $post_id ) {
 		global $wpdb;
 
-		$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
-		$wpdb->delete( $table_name, array( 'ID' => $post_id ) );
+		$wpdb->delete( $wpdb->prefix . 'full_text_search_posts', array( 'ID' => $post_id ) ); // WPCS: db call ok; no-cache ok.
 	}
 
 	/**
@@ -563,13 +576,13 @@ class Full_Text_Search {
 	 * @return array
 	 */
 	public function get_default_options() {
-		return array( 
+		return array(
 			'plugin_version'        => FULL_TEXT_SEARCH_VERSION,
-			'db_type'               => '',       // '', 'mariadb' or 'mysql'
-			'db_engine'             => '',       // '', 'mroonga' or'innodb'
-			'sort_order'            => 'score',  // 'default' or 'score'
-			'enable_mode'           => 'search', // 'disable', 'enable' or 'search'
-			'enable_attachment'     => 'enable', // 'disable', 'enable' or 'filter'
+			'db_type'               => '',       // // '', 'mariadb' or 'mysql'
+			'db_engine'             => '',       // // '', 'mroonga' or'innodb'
+			'sort_order'            => 'score',  // // 'default' or 'score'
+			'enable_mode'           => 'search', // // 'disable', 'enable' or 'search'
+			'enable_attachment'     => 'enable', // // 'disable', 'enable' or 'filter'
 			'enable_zip'            => false,
 			'enable_pdf'            => false,
 			'enable_word'           => false,
@@ -581,7 +594,7 @@ class Full_Text_Search {
 			'auto_powerpoint'       => true,
 			'display_score'         => true,
 			'highlight'             => true,
-			'search_result_content' => 'excerpt', // 'excerpt' or 'content'
+			'search_result_content' => 'excerpt', // // 'excerpt' or 'content'
 			'search_shortcode'      => false,
 			'search_block'          => false,
 			'search_html'           => false,
@@ -603,23 +616,24 @@ class Full_Text_Search {
 			return false;
 		}
 
-		$engine = ( 'mroonga' === $db_engine ) ? 'Mroonga' : 'InnoDB';
-
 		$result = false;
+
+		$engine = ( 'mroonga' === $db_engine ) ? 'Mroonga' : 'InnoDB';
 
 		$db_index = ( 'mroonga' === $db_engine ) ?
 			'FULLTEXT INDEX (keywords,post_title,post_content,post_excerpt) COMMENT \'parser "TokenMecab"\'' :
 			'FULLTEXT INDEX (keywords,post_title,post_content,post_excerpt) WITH PARSER ngram';
 
-		//$charset_collate = $wpdb->get_charset_collate();
+		// // $charset_collate = $wpdb->get_charset_collate();
 		$charset_collate = 'DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
 
-		$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$table_engine = $wpdb->get_var( $wpdb->prepare( 'SELECT ENGINE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME=%s', $wpdb->prefix . 'full_text_search_posts' ) );
 
-		$table_engine = $wpdb->get_var( $wpdb->prepare( 'SELECT ENGINE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME=%s', $table_name ) );
 		if ( null === $table_engine ) {
+			// @codingStandardsIgnoreStart
 			$result = $wpdb->query(
-				"CREATE TABLE `{$table_name}` (
+				"CREATE TABLE {$wpdb->prefix}full_text_search_posts (
 				ID bigint(20) unsigned NOT NULL auto_increment,
 				post_type varchar(20) NOT NULL default 'post',
 				post_modified datetime NOT NULL default CURRENT_TIMESTAMP,
@@ -630,15 +644,18 @@ class Full_Text_Search {
 				status tinyint(1) NOT NULL default '0',
 				PRIMARY KEY (ID),
 				{$db_index}
-				) ENGINE={$engine} {$charset_collate};"
+				) ENGINE = {$engine} {$charset_collate};"
 			);
+			// @codingStandardsIgnoreEnd
 		} else {
-			if ( $db_engine !== strtolower( $table_engine ) ) {
-				$result = $wpdb->query( "ALTER TABLE {$table_name} ENGINE={$engine};" );
+			if ( strtolower( $table_engine ) !== $db_engine ) {
+				// phpcs:ignore WordPress.DB, WPCS: unprepared SQL OK
+				$result = $wpdb->query( "ALTER TABLE {$wpdb->prefix}full_text_search_posts ENGINE={$engine};" );
 			} else {
 				$result = true;
 			}
-			$wpdb->query( "OPTIMIZE TABLE {$table_name};" );
+
+			$wpdb->query( "OPTIMIZE TABLE {$wpdb->prefix}full_text_search_posts;" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		}
 
 		return $result;
@@ -659,10 +676,10 @@ class Full_Text_Search {
 		if ( ! isset( $this->pdfparser ) ) {
 			$config = new Smalot\PdfParser\Config();
 			$config->setRetainImageContent( false );
-			$this->pdfparser = new \Smalot\PdfParser\Parser( [], $config );
+			$this->pdfparser = new \Smalot\PdfParser\Parser( array(), $config );
 		}
 		$pdffile = $this->pdfparser->parseFile( $file );
-		$text = trim( (string) $pdffile->getText() );
+		$text    = trim( (string) $pdffile->getText() );
 
 		// Remove control characters (including newline).
 		$text = preg_replace( '/[[:cntrl:]]/', '', $text );
@@ -704,7 +721,7 @@ class Full_Text_Search {
 				foreach ( $paragraphs as $p ) {
 					$ts = $p->getElementsByTagName( 't' );
 					foreach ( $ts as $t ) {
-						$text .= $t->nodeValue;
+						$text .= $t->nodeValue; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 					}
 					$text .= $newline;
 				}
@@ -725,31 +742,43 @@ class Full_Text_Search {
 	 *
 	 * @throws Exception The file fails to load.
 	 *
-	 * @param string $file    Path to the file.
+	 * @param string $file Path to the file.
 	 * @return string text string.
 	 */
 	public function get_text_from_doc_file( $file ) {
-		$text = '';
+		global $wp_filesystem;
 
-		if ( ( $fh = fopen( $file, 'r' ) ) !== false ) {
-			$headers = fread( $fh, 0xA00 );
-			$len = ( ord( $headers[0x21C] ) - 1 );
-			$len += ( ( ord( $headers[0x21D] ) - 8 ) * 256 );
-			$len += ( ( ord( $headers[0x21E] ) * 256 ) * 256 );
-			$len += ( ( ( ord( $headers[0x21F] ) * 256 ) * 256 ) * 256 );
-			if ( $len > 0 ) {
-				$text = fread( $fh, $len );
-				$text = mb_convert_encoding( $text, 'UTF-8', 'UTF-16LE' );
-				$text = preg_replace( '/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
-				$text = trim( $text );
+		if ( empty( $wp_filesystem ) ) {
+			require_once ABSPATH . '/wp-admin/includes/file.php';
+
+			if ( ( defined( 'FTP_HOST' ) && defined( 'FTP_USER' ) && defined( 'FTP_PASS' ) ) || is_admin() ) {
+				$creds = request_filesystem_credentials( '', '', false, false, null );
 			}
-			fclose( $fh );
-			if ( $len <= 0 ) {
-				throw new Exception( 'Unsupported file format.' );
-			}
-		} else {
+
+			WP_Filesystem( $creds );
+		}
+
+		$content = $wp_filesystem->get_contents( $file );
+
+		if ( false === $content ) {
 			throw new Exception( 'File open error.' );
 		}
+
+		$len  = ( ord( $content[0x21C] ) - 1 );
+		$len += ( ( ord( $content[0x21D] ) - 8 ) * 256 );
+		$len += ( ( ord( $content[0x21E] ) * 256 ) * 256 );
+		$len += ( ( ( ord( $content[0x21F] ) * 256 ) * 256 ) * 256 );
+
+		if ( $len <= 0 ) {
+			throw new Exception( 'Unsupported file format.' );
+		}
+
+		$text = substr( $content, 0xA00, $len );
+		$text = mb_convert_encoding( $text, 'UTF-8', 'UTF-16LE' );
+		$text = preg_replace( '/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
+		$text = trim( $text );
+
+		$text = preg_replace( '/[[:cntrl:]]/', '', $text );
 
 		return $text;
 	}
@@ -776,7 +805,7 @@ class Full_Text_Search {
 				$dom->loadXML( $xml );
 				$ts = $dom->getElementsByTagName( 't' );
 				foreach ( $ts as $t ) {
-					$text .= $t->nodeValue;
+					$text .= $t->nodeValue; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 					$text .= $newline;
 				}
 				$text = trim( $text );
@@ -808,13 +837,13 @@ class Full_Text_Search {
 			$dom = new DOMDocument();
 
 			$i = 1;
-			while ( false !== ( $xml = $zip->getFromName( "ppt/slides/slide{$i}.xml" ) ) ) {
+			while ( false !== ( $xml = $zip->getFromName( "ppt/slides/slide{$i}.xml" ) ) ) { // phpcs:ignore
 				$dom->loadXML( $xml );
 				$paragraphs = $dom->getElementsByTagName( 'p' );
 				foreach ( $paragraphs as $p ) {
 					$ts = $p->getElementsByTagName( 't' );
 					foreach ( $ts as $t ) {
-						$text .= $t->nodeValue;
+						$text .= $t->nodeValue; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 					}
 					$text .= $newline;
 				}
@@ -822,13 +851,13 @@ class Full_Text_Search {
 			}
 
 			$i = 1;
-			while ( false !== ( $xml = $zip->getFromName( "ppt/diagrams/data{$i}.xml" ) ) ) {
+			while ( false !== ( $xml = $zip->getFromName( "ppt/diagrams/data{$i}.xml" ) ) ) { // phpcs:ignore
 				$dom->loadXML( $xml );
 				$paragraphs = $dom->getElementsByTagName( 'p' );
 				foreach ( $paragraphs as $p ) {
 					$ts = $p->getElementsByTagName( 't' );
 					foreach ( $ts as $t ) {
-						$text .= $t->nodeValue;
+						$text .= $t->nodeValue; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 					}
 					$text .= $newline;
 				}
@@ -854,11 +883,10 @@ class Full_Text_Search {
 	public function update_index_data() {
 		global $wpdb;
 
-		$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
-
 		$post_types = get_post_types( array( 'exclude_from_search' => false ) );
-		$sql_posts = "'" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "'";
+		$sql_posts  = "'" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "'";
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$posts_count = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->posts} WHERE post_type IN ({$sql_posts}) AND post_status <> 'auto-draft';" );
 
 		/**
@@ -879,20 +907,25 @@ class Full_Text_Search {
 		/*
 		 * Delete
 		 */
-		$wpdb->query( "DELETE FROM {$table_name} WHERE ID NOT IN (SELECT ID FROM {$wpdb->posts} WHERE post_type IN ({$sql_posts}) AND post_status <> 'auto-draft');" );
+		// phpcs:ignore WordPress.DB.PreparedSQL, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( "DELETE FROM {$wpdb->prefix}full_text_search_posts WHERE ID NOT IN (SELECT ID FROM {$wpdb->posts} WHERE post_type IN ({$sql_posts}) AND post_status <> 'auto-draft');" );
 
 		/*
 		 * Update
 		 */
-		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT SQL_CALC_FOUND_ROWS t1.ID, t1.post_type, t1.post_mime_type, t1.post_modified, t1.post_title, t1.post_content, t1.post_excerpt, m.meta_value AS keywords " .
-			"FROM {$wpdb->posts} AS t1 LEFT OUTER JOIN {$table_name} AS t2 ON (t1.ID = t2.ID) " .
-			"LEFT JOIN {$wpdb->postmeta} AS m ON t1.ID = m.post_id AND m.meta_key = %s " . 
-			"WHERE (t2.ID IS NULL OR t1.post_modified > t2.post_modified) AND t1.post_type IN ({$sql_posts}) AND t1.post_status <> 'auto-draft' LIMIT %d;",
-			Full_Text_Search::CUSTOM_FIELD_NAME, $limit
-		) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT SQL_CALC_FOUND_ROWS t1.ID, t1.post_type, t1.post_mime_type, t1.post_modified, t1.post_title, t1.post_content, t1.post_excerpt, m.meta_value AS keywords ' .
+				"FROM {$wpdb->posts} AS t1 LEFT OUTER JOIN {$wpdb->prefix}full_text_search_posts AS t2 ON (t1.ID = t2.ID) " .
+				"LEFT JOIN {$wpdb->postmeta} AS m ON t1.ID = m.post_id AND m.meta_key = %s " .
+				"WHERE (t2.ID IS NULL OR t1.post_modified > t2.post_modified) AND t1.post_type IN ({$sql_posts}) AND t1.post_status <> 'auto-draft' LIMIT %d;",
+				self::CUSTOM_FIELD_NAME,
+				$limit
+			)
+		); // phpcs:ignore unprepared SQL ok.
 
-		$found_rows = (int) $wpdb->get_var( 'SELECT FOUND_ROWS()' );
+		$found_rows = (int) $wpdb->get_var( 'SELECT FOUND_ROWS()' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		foreach ( $rows as $row ) {
 			$this->update_index_post( $row->ID, $row, $row->keywords );
@@ -912,7 +945,7 @@ class Full_Text_Search {
 	 *
 	 * @global wpdb $wpdb WordPress database abstraction object.
 	 *
-	 * @param int $post_id Post ID
+	 * @param int $post_id Post ID.
 	 * @return object|null Database query result. null on failure.
 	 */
 	public function get_fulltext_row( $post_id ) {
@@ -926,8 +959,8 @@ class Full_Text_Search {
 		if ( ! $_post ) {
 			global $wpdb;
 
-			$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
-			$_post = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE ID = %d LIMIT 1", $post_id ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$_post = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}full_text_search_posts WHERE ID = %d LIMIT 1", $post_id ) );
 
 			if ( ! $_post ) {
 				return null;
@@ -957,13 +990,14 @@ class Full_Text_Search {
 	 *
 	 * @since 2.9.0
 	 *
+	 * @param string $input Search keywords.
 	 * @return array
 	 */
 	private function get_search_keywords( $input ) {
 		$ws = preg_split( '//u', $input . ' ', -1, PREG_SPLIT_NO_EMPTY );
 		$in = false;
-		$w = '';
-		$a = array();
+		$w  = '';
+		$a  = array();
 		foreach ( $ws as $s ) {
 			if ( '　' === $s && ! $in ) {
 				$s = ' ';
@@ -975,24 +1009,24 @@ class Full_Text_Search {
 				if ( 'AND' === $w ) {
 					$w = '';
 				}
-				if ( '' !== $w && ' ' !== $w  ) {
-					if ( ! in_array( substr( $w, 0, 1 ), array( '+', '-', '~', '@' ) ) ) {
+				if ( '' !== $w && ' ' !== $w ) {
+					if ( ! in_array( substr( $w, 0, 1 ), array( '+', '-', '~', '@' ), true ) ) {
 						$count = count( $a );
 						if ( $count > 0 ) {
-							$a[$count - 1] = ltrim( $a[$count - 1], '+' );
+							$a[ $count - 1 ] = ltrim( $a[ $count - 1 ], '+' );
 						}
 					}
 					$a[] = $w;
 				}
 				$w = '';
-			} else if ( ( '(' === $s  || ')' === $s ) && ! $in ) {
+			} elseif ( ( '(' === $s || ')' === $s ) && ! $in ) {
 				$count = count( $a );
 				if ( $count > 0 ) {
-					$a[$count - 1] = ltrim( $a[$count - 1], '+' );
+					$a[ $count - 1 ] = ltrim( $a[ $count - 1 ], '+' );
 				}
 				$a[] = $w;
 				$a[] = $s;
-				$w = '';
+				$w   = '';
 			} else {
 				if ( '"' === $s ) {
 					$in = ! $in;
@@ -1021,28 +1055,33 @@ class Full_Text_Search {
 			$a = array();
 			foreach ( $keywords as $keyword ) {
 				$a[] = $keyword;
-				if ( $keyword !== ( $han = mb_convert_kana( $keyword, 'a' ) ) ) $a[] = $han;
-				if ( $keyword !== ( $zen = mb_convert_kana( $keyword, 'A' ) ) ) $a[] = $zen;
+				$han = mb_convert_kana( $keyword, 'a' );
+				if ( $keyword !== $han ) {
+					$a[] = $han;
+				}
+				$zen = mb_convert_kana( $keyword, 'A' );
+				if ( $keyword !== $zen ) {
+					$a[] = $zen;
+				}
 			}
 			$keywords = $a;
 		}
 
 		foreach ( $keywords as &$keyword ) {
-			$keyword = preg_quote( $keyword, '/' ); // PHP 7.2
+			$keyword = preg_quote( $keyword, '/' ); // PHP 7.2.
 		}
 
-		$pattern = '/(' . implode( '|', $keywords ) .')/iu';
-
-		$textarr = wp_html_split( $html );
+		$pattern         = '/(' . implode( '|', $keywords ) . ')/iu';
+		$textarr         = wp_html_split( $html );
 		$ignore_elements = array( 'mark', '/mark', 'code', '/code', 'pre', '/pre', 'option', '/option' );
-		$inside_block = array();
+		$inside_block    = array();
 		foreach ( $textarr as &$element ) {
 			if ( 0 === strpos( $element, '<' ) ) {
-				$offset = 1;
+				$offset     = 1;
 				$is_end_tag = false;
 
 				if ( 1 === strpos( $element, '/' ) ) {
-					$offset = 2;
+					$offset     = 2;
 					$is_end_tag = true;
 				}
 
@@ -1056,7 +1095,7 @@ class Full_Text_Search {
 				}
 			} else {
 				if ( empty( $inside_block ) ) {
-					$element = preg_replace( $pattern, '<mark class="fts">' . '$1' . '</mark>', $element );
+					$element = preg_replace( $pattern, '<mark class="fts">$1</mark>', $element );
 				}
 			}
 		}
@@ -1074,13 +1113,17 @@ class Full_Text_Search {
 	 * @return string Post html.
 	 */
 	private function filter_highlight( $html, $type ) {
-		if ( is_main_query() /* && in_the_loop() */ ) {
+		if ( is_main_query() ) {
 			if ( is_search() ) {
 				if ( 'title' === $type || ( isset( $this->options['search_result_content'] ) && $type === $this->options['search_result_content'] ) ) {
 					$html = $this->get_highlight_html( $html, get_search_query( false ) );
 				}
-			} else if ( isset( $_GET['highlight'] ) ) {
-				// $html = $this->get_highlight_html( $html, sanitize_text_field( wp_unslash( $_GET['highlight'] ) ) );
+				/**
+				 * Highlighting a link destination.
+				 * } elseif ( isset( $_GET['highlight'] ) ) {
+				 *     $html = $this->get_highlight_html( $html, sanitize_text_field( wp_unslash( $_GET['highlight'] ) ) );
+				 * }
+				 */
 			}
 		}
 		return $html;
@@ -1118,7 +1161,7 @@ class Full_Text_Search {
 	 * @param string $post_excerpt Post excerpt.
 	 * @return string Post excerpt.
 	 */
-	public function filter_the_excerpt_highlight( $post_excerpt  ) {
+	public function filter_the_excerpt_highlight( $post_excerpt ) {
 		return $this->filter_highlight( $post_excerpt, 'excerpt' );
 	}
 
@@ -1132,8 +1175,8 @@ class Full_Text_Search {
 	 * @return string|false Post permalink. False if the post does not exist.
 	 */
 	public function filter_post_link( $permalink, $post ) {
-		if ( is_search() && is_main_query() /* && in_the_loop() */ ) {
-			$permalink = add_query_arg( 'highlight', urlencode( get_search_query( false ) ), $permalink );
+		if ( is_search() && is_main_query() ) {
+			$permalink = add_query_arg( 'highlight', rawurlencode( get_search_query( false ) ), $permalink );
 		}
 		return $permalink;
 	}
@@ -1148,7 +1191,7 @@ class Full_Text_Search {
 	 * @return string Post content or post excerpt.
 	 */
 	public function filter_the_content_score( $content, $post = null ) {
-		if ( is_search() && is_main_query() /* && in_the_loop() */ ) {
+		if ( is_search() && is_main_query() ) {
 			return $this->get_the_score( $post ) . $content;
 		}
 		return $content;
@@ -1169,9 +1212,10 @@ class Full_Text_Search {
 		if ( ! property_exists( $post, 'search_score' ) ) {
 			return '';
 		}
-		$html = 
-			'<div class="full-text-search-result-items"><span class="full-text-search-score">' . 
-			sprintf( __( 'Search score: %01.2f', 'full-text-search' ), $post->search_score ) . 
+		$html =
+			'<div class="full-text-search-result-items"><span class="full-text-search-score">' .
+			/* translators: %01.2f is Search score. */
+			sprintf( __( 'Search score: %01.2f', 'full-text-search' ), $post->search_score ) .
 			'</span></div>';
 		return $html;
 	}
@@ -1186,9 +1230,10 @@ class Full_Text_Search {
 	public function activation() {
 		global $wp_version, $wpdb;
 
-		switch( get_class( $wpdb ) ) {
+		switch ( get_class( $wpdb ) ) {
 			case 'wpdb':
 				if ( $wpdb->use_mysqli ) {
+					// phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_get_server_info
 					$mysql_server_type = mysqli_get_server_info( $wpdb->dbh );
 				} else {
 					// @codingStandardsIgnoreStart
@@ -1202,19 +1247,19 @@ class Full_Text_Search {
 					$db_type = 'mysql';
 				}
 
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$enable_mroonga = $wpdb->get_var( "SELECT COUNT(*) FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='Mroonga'" );
+
 				if ( $enable_mroonga ) {
 					$engine = 'mroonga';
 				} else {
-					$db_version = $wpdb->get_var( 'SELECT VERSION()' );
+					$db_version = $wpdb->get_var( 'SELECT VERSION()' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 					if ( 'mysql' === $db_type && version_compare( '5.6', $db_version, '<=' ) ) {
 						$engine = 'innodb';
 					}
 				}
 				break;
 			case 'Perflab_SQLite_DB':
-				// $db_type = 'sqlite';
-				// $engine = 'sqlite';
 				break;
 		}
 
@@ -1226,19 +1271,19 @@ class Full_Text_Search {
 		$options = get_option( 'full_text_search_options' );
 		if ( false === $options ) {
 			$options = $this->get_default_options();
-			$options['db_type'] = $db_type;
+
+			$options['db_type']   = $db_type;
 			$options['db_engine'] = $engine;
 			add_option( 'full_text_search_options', $options );
 		} else {
-			// Less than 2.9.2
+			// Less than 2.9.2.
 			if ( version_compare( $options['plugin_version'], '2.9.2', '<' ) ) {
-				$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
-				$wpdb->query( "DROP TABLE IF EXISTS {$table_name};" );
+				$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}full_text_search_posts;" ); // phpcs:ignore
 			}
 
 			$options['plugin_version'] = FULL_TEXT_SEARCH_VERSION;
-			$options['db_type'] = $db_type;
-			$options['db_engine'] = $engine;
+			$options['db_type']        = $db_type;
+			$options['db_engine']      = $engine;
 			update_option( 'full_text_search_options', $options );
 		}
 
@@ -1263,12 +1308,10 @@ class Full_Text_Search {
 			wp_clear_scheduled_hook( 'full_text_search_event' );
 		}
 
-		$table_name = $wpdb->prefix . Full_Text_Search::TABLE_NAME;
-		if ( null !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) ) ) {
-			$wpdb->query( "DROP TABLE IF EXISTS {$table_name};" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+		if ( null !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'full_text_search_posts' ) ) ) {
+			$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}full_text_search_posts;" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		}
-
-		// delete_metadata( 'post', 0, Full_Text_Search::CUSTOM_FIELD_NAME, false, true );
 
 		delete_option( 'full_text_search_options' );
 	}
@@ -1283,16 +1326,15 @@ class Full_Text_Search {
 	public static function uninstall() {
 		global $wpdb;
 
-		if ( ! is_multisite() ) {
-			Full_Text_Search::uninstall_site();
-		} else {
-			$current_blog_id = get_current_blog_id();
-			$blog_ids = $wpdb->get_col( "SELECT blog_id FROM $wpdb->blogs" );
-			foreach ( $blog_ids as $blog_id ) {
-				switch_to_blog( $blog_id );
-				Full_Text_Search::uninstall_site();
+		if ( is_multisite() && $network_wide ) {
+			$site_ids = get_sites( array( 'fields' => 'ids' ) );
+			foreach ( $site_ids as $site_id ) {
+				switch_to_blog( $site_id );
+				self::uninstall_site();
 			}
-			switch_to_blog( $current_blog_id );
+			restore_current_blog();
+		} else {
+			self::uninstall_site();
 		}
 	}
 }
