@@ -79,8 +79,9 @@ class Full_Text_Search {
 		}
 
 		if ( ! isset( $this->options['auto_pdf'] ) || $this->options['auto_pdf'] ) {
-			if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
-				require_once __DIR__ . '/vendor/autoload.php';
+			$autoloader = __DIR__ . '/vendor/autoload_packages.php';
+			if ( is_readable( $autoloader ) ) {
+				require_once $autoloader;
 			}
 			$this->pdfparser = null;
 		}
@@ -98,7 +99,9 @@ class Full_Text_Search {
 			add_filter( 'the_title', array( $this, 'filter_the_title_highlight' ) );
 			add_filter( 'the_content', array( $this, 'filter_the_content_highlight' ) );
 			add_filter( 'get_the_excerpt', array( $this, 'filter_the_excerpt_highlight' ) );
-			// // add_filter( 'post_link', array( $this, 'filter_post_link' ), 10, 2 );
+			/* phpcs:ignore Squiz.PHP.CommentedOutCode.Found
+			add_filter( 'post_link', array( $this, 'filter_post_link' ), 10, 2 );
+			*/
 		}
 	}
 
