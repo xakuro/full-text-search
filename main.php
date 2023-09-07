@@ -95,7 +95,7 @@ class Full_Text_Search {
 			}
 		}
 
-		if ( isset( $this->options['highlight'] ) && $this->options['highlight'] ) {
+		if ( isset( $this->options['highlight'] ) && $this->options['highlight'] && ! is_admin() ) {
 			add_filter( 'the_title', array( $this, 'filter_the_title_highlight' ) );
 			add_filter( 'the_content', array( $this, 'filter_the_content_highlight' ) );
 			add_filter( 'get_the_excerpt', array( $this, 'filter_the_excerpt_highlight' ) );
@@ -580,12 +580,13 @@ class Full_Text_Search {
 	 */
 	public function get_default_options() {
 		return array(
+			// phpcs:disable Squiz.PHP.CommentedOutCode.Found
 			'plugin_version'        => FULL_TEXT_SEARCH_VERSION,
-			'db_type'               => '',       // // '', 'mariadb' or 'mysql'
-			'db_engine'             => '',       // // '', 'mroonga' or'innodb'
-			'sort_order'            => 'score',  // // 'default' or 'score'
-			'enable_mode'           => 'search', // // 'disable', 'enable' or 'search'
-			'enable_attachment'     => 'enable', // // 'disable', 'enable' or 'filter'
+			'db_type'               => '',       // '', 'mariadb' or 'mysql'
+			'db_engine'             => '',       // '', 'mroonga' or'innodb'
+			'sort_order'            => 'score',  // 'default' or 'score'
+			'enable_mode'           => 'search', // 'disable', 'enable' or 'search'
+			'enable_attachment'     => 'enable', // 'disable', 'enable' or 'filter'
 			'enable_zip'            => false,
 			'enable_pdf'            => false,
 			'enable_word'           => false,
@@ -597,10 +598,11 @@ class Full_Text_Search {
 			'auto_powerpoint'       => true,
 			'display_score'         => true,
 			'highlight'             => true,
-			'search_result_content' => 'excerpt', // // 'excerpt' or 'content'
+			'search_result_content' => 'excerpt', // 'excerpt' or 'content'
 			'search_shortcode'      => false,
 			'search_block'          => false,
 			'search_html'           => false,
+			// phpcs:enable
 		);
 	}
 
@@ -1053,6 +1055,10 @@ class Full_Text_Search {
 	private function get_highlight_html( $html, $s ) {
 		$keywords = $this->get_search_keywords( $s );
 
+		if ( empty( $keywords ) ) {
+			return $html;
+		}
+
 		// Mixing of multi-byte characters and single-byte characters is not considered.
 		if ( function_exists( 'mb_convert_kana' ) ) {
 			$a = array();
@@ -1329,7 +1335,7 @@ class Full_Text_Search {
 	public static function uninstall() {
 		global $wpdb;
 
-		if ( is_multisite() && $network_wide ) {
+		if ( is_multisite() ) {
 			$site_ids = get_sites( array( 'fields' => 'ids' ) );
 			foreach ( $site_ids as $site_id ) {
 				switch_to_blog( $site_id );
