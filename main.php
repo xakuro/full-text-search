@@ -920,6 +920,7 @@ class Full_Text_Search {
 		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results(
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				'SELECT SQL_CALC_FOUND_ROWS t1.ID, t1.post_type, t1.post_mime_type, t1.post_modified, t1.post_title, t1.post_content, t1.post_excerpt, m.meta_value AS keywords ' .
 				"FROM {$wpdb->posts} AS t1 LEFT OUTER JOIN {$wpdb->prefix}full_text_search_posts AS t2 ON (t1.ID = t2.ID) " .
@@ -928,7 +929,8 @@ class Full_Text_Search {
 				self::CUSTOM_FIELD_NAME,
 				$limit
 			)
-		); // phpcs:ignore unprepared SQL ok.
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		);
 
 		$found_rows = (int) $wpdb->get_var( 'SELECT FOUND_ROWS()' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
@@ -1030,7 +1032,6 @@ class Full_Text_Search {
 					$a[ $count - 1 ] = ltrim( $a[ $count - 1 ], '+' );
 				}
 				$a[] = $w;
-				$a[] = $s;
 				$w   = '';
 			} else {
 				if ( '"' === $s ) {
@@ -1122,18 +1123,16 @@ class Full_Text_Search {
 	 * @return string Post html.
 	 */
 	private function filter_highlight( $html, $type ) {
-		if ( is_main_query() ) {
-			if ( is_search() ) {
-				if ( 'title' === $type || ( isset( $this->options['search_result_content'] ) && $type === $this->options['search_result_content'] ) ) {
-					$html = $this->get_highlight_html( $html, get_search_query( false ) );
-				}
-				/**
-				 * Highlighting a link destination.
-				 * } elseif ( isset( $_GET['highlight'] ) ) {
-				 *     $html = $this->get_highlight_html( $html, sanitize_text_field( wp_unslash( $_GET['highlight'] ) ) );
-				 * }
-				 */
+		if ( is_search() && in_the_loop() ) {
+			if ( 'title' === $type || ( isset( $this->options['search_result_content'] ) && $type === $this->options['search_result_content'] ) ) {
+				$html = $this->get_highlight_html( $html, get_search_query( false ) );
 			}
+			/**
+			 * Highlighting a link destination.
+			 * } elseif ( isset( $_GET['highlight'] ) ) {
+			 *     $html = $this->get_highlight_html( $html, sanitize_text_field( wp_unslash( $_GET['highlight'] ) ) );
+			 * }
+			 */
 		}
 		return $html;
 	}
@@ -1184,7 +1183,7 @@ class Full_Text_Search {
 	 * @return string|false Post permalink. False if the post does not exist.
 	 */
 	public function filter_post_link( $permalink, $post ) {
-		if ( is_search() && is_main_query() ) {
+		if ( is_search() && in_the_loop() ) {
 			$permalink = add_query_arg( 'highlight', rawurlencode( get_search_query( false ) ), $permalink );
 		}
 		return $permalink;
@@ -1200,7 +1199,7 @@ class Full_Text_Search {
 	 * @return string Post content or post excerpt.
 	 */
 	public function filter_the_content_score( $content, $post = null ) {
-		if ( is_search() && is_main_query() ) {
+		if ( is_search() && in_the_loop() ) {
 			return $this->get_the_score( $post ) . $content;
 		}
 		return $content;
@@ -1225,7 +1224,7 @@ class Full_Text_Search {
 			'<div class="full-text-search-result-items"><span class="full-text-search-score">' .
 			/* translators: %01.2f is Search score. */
 			sprintf( __( 'Search score: %01.2f', 'full-text-search' ), $post->search_score ) .
-			'</span></div>';
+			'</span> </div>';
 		return $html;
 	}
 

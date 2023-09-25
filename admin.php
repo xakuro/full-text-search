@@ -512,7 +512,7 @@ class Full_Text_Search_Admin {
 		echo '<fieldset id="search-target"><legend class="screen-reader-text"><span>' . esc_html__( 'Search target', 'full-text-search' ) . '</span></legend>';
 		echo '<ul>';
 		echo '<li><label for="search_shortcode"><input type="checkbox" name="full_text_search_options[search_shortcode]" id="search_shortcode" value="1" ' . checked( $shortcode, true, false ) . '> ' . esc_html__( 'Shortcode content', 'full-text-search' ) . '</label></li>';
-		echo '<li><label for="search_block"><input type="checkbox" name="full_text_search_options[search_block]" id="search_block" value="1" ' . checked( $block, true, false ) . '> ' . esc_html__( 'Reusable Block Content', 'full-text-search' ) . '</label></li>';
+		echo '<li><label for="search_block"><input type="checkbox" name="full_text_search_options[search_block]" id="search_block" value="1" ' . checked( $block, true, false ) . '> ' . esc_html__( 'Synced Pattern content', 'full-text-search' ) . '</label></li>';
 		echo '<li><label for="search_html"><input type="checkbox" name="full_text_search_options[search_html]" id="search_html" value="1" ' . checked( $html, true, false ) . '> ' . esc_html__( 'HTML tags', 'full-text-search' ) . '</label></li>';
 		echo '</ul>';
 		echo '</fieldset>';
