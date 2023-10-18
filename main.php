@@ -583,7 +583,7 @@ class Full_Text_Search {
 			// phpcs:disable Squiz.PHP.CommentedOutCode.Found
 			'plugin_version'        => FULL_TEXT_SEARCH_VERSION,
 			'db_type'               => '',       // '', 'mariadb' or 'mysql'
-			'db_engine'             => '',       // '', 'mroonga' or'innodb'
+			'db_engine'             => '',       // '', 'mroonga' or 'innodb'
 			'sort_order'            => 'score',  // 'default' or 'score'
 			'enable_mode'           => 'search', // 'disable', 'enable' or 'search'
 			'enable_attachment'     => 'enable', // 'disable', 'enable' or 'filter'
@@ -1123,7 +1123,7 @@ class Full_Text_Search {
 	 * @return string Post html.
 	 */
 	private function filter_highlight( $html, $type ) {
-		if ( is_search() && in_the_loop() ) {
+		if ( is_search() && in_the_loop() && is_main_query() ) {
 			if ( 'title' === $type || ( isset( $this->options['search_result_content'] ) && $type === $this->options['search_result_content'] ) ) {
 				$html = $this->get_highlight_html( $html, get_search_query( false ) );
 			}
@@ -1183,7 +1183,7 @@ class Full_Text_Search {
 	 * @return string|false Post permalink. False if the post does not exist.
 	 */
 	public function filter_post_link( $permalink, $post ) {
-		if ( is_search() && in_the_loop() ) {
+		if ( is_search() && in_the_loop() && is_main_query() ) {
 			$permalink = add_query_arg( 'highlight', rawurlencode( get_search_query( false ) ), $permalink );
 		}
 		return $permalink;
@@ -1199,7 +1199,7 @@ class Full_Text_Search {
 	 * @return string Post content or post excerpt.
 	 */
 	public function filter_the_content_score( $content, $post = null ) {
-		if ( is_search() && in_the_loop() ) {
+		if ( is_search() && in_the_loop() && is_main_query() ) {
 			return $this->get_the_score( $post ) . $content;
 		}
 		return $content;
@@ -1240,16 +1240,9 @@ class Full_Text_Search {
 
 		switch ( get_class( $wpdb ) ) {
 			case 'wpdb':
-				if ( $wpdb->use_mysqli ) {
-					// phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_get_server_info
-					$mysql_server_type = mysqli_get_server_info( $wpdb->dbh );
-				} else {
-					// @codingStandardsIgnoreStart
-					$mysql_server_type = mysql_get_server_info( $wpdb->dbh );
-					// @codingStandardsIgnoreEnd
-				}
+				$db_server_info = $wpdb->db_server_info();
 
-				if ( stristr( $mysql_server_type, 'mariadb' ) ) {
+				if ( stristr( $db_server_info, 'mariadb' ) ) {
 					$db_type = 'mariadb';
 				} else {
 					$db_type = 'mysql';
