@@ -28,10 +28,10 @@ class Full_Text_Search_Admin {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param XO_Event_Calendar $parent Parent object.
+	 * @param XO_Event_Calendar $parent_object Parent object.
 	 */
-	public function __construct( $parent ) {
-		$this->parent = $parent;
+	public function __construct( $parent_object ) {
+		$this->parent = $parent_object;
 		add_action( 'plugins_loaded', array( $this, 'setup' ) );
 	}
 
@@ -433,11 +433,15 @@ class Full_Text_Search_Admin {
 		$search_result_content = $this->parent->options['search_result_content'] ?? 'excerpt';
 		$display_score         = $this->parent->options['display_score'] ?? false;
 		$highlight             = $this->parent->options['highlight'] ?? false;
+		$markjs                = $this->parent->options['markjs'] ?? false;
 
 		echo '<fieldset id="display_search_result"><legend class="screen-reader-text"><span>' . esc_html__( 'Search result', 'full-text-search' ) . '</span></legend>';
 		echo '<ul>';
 		echo '<li><label for="display_score"><input type="checkbox" name="full_text_search_options[display_score]" id="display_score" value="1" ' . checked( $display_score, true, false ) . '> ' . esc_html__( 'Search Score', 'full-text-search' ) . '</label></li>';
 		echo '<li><label for="highlight"><input type="checkbox" name="full_text_search_options[highlight]" id="highlight" value="1" ' . checked( $highlight, true, false ) . '> ' . esc_html__( 'Highlight search terms', 'full-text-search' ) . '</label></li>';
+		echo '<ul>';
+		echo '<li><label for="markjs"><input type="checkbox" name="full_text_search_options[markjs]" id="markjs" value="1" ' . checked( $markjs, true, false ) . '> ' . esc_html__( 'Use mark.js for highlighting', 'full-text-search' ) . '</label></li>';
+		echo '</ul>';
 		echo '<li><label for="field_search_result_content">' . esc_html__( 'Search result content:', 'full-text-search' ) . ' ';
 		echo '<select id="field_search_result_content" name="full_text_search_options[search_result_content]">';
 		echo '<option value="excerpt"' . ( 'excerpt' === $search_result_content ? ' selected' : '' ) . '>' . esc_html__( 'Excerpt', 'full-text-search' ) . '</option>';
@@ -445,6 +449,7 @@ class Full_Text_Search_Admin {
 		echo '</select></label></li>';
 		echo '</ul>';
 		echo '</fieldset>';
+		echo '<p class="description">' . esc_html__( 'Choose according to the theme.', 'full-text-search' ) . '</p>';
 	}
 
 	/**
@@ -532,6 +537,7 @@ class Full_Text_Search_Admin {
 
 		$this->parent->options['display_score']         = ( isset( $input['display_score'] ) && '1' === $input['display_score'] );
 		$this->parent->options['highlight']             = ( isset( $input['highlight'] ) && '1' === $input['highlight'] );
+		$this->parent->options['markjs']                = ( isset( $input['markjs'] ) && '1' === $input['markjs'] );
 		$this->parent->options['search_result_content'] = $input['search_result_content'];
 
 		$this->parent->options['enable_attachment'] = $input['enable_attachment'];

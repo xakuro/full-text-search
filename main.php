@@ -96,12 +96,13 @@ class Full_Text_Search {
 		}
 
 		if ( isset( $this->options['highlight'] ) && $this->options['highlight'] && ! is_admin() ) {
-			add_filter( 'the_title', array( $this, 'filter_the_title_highlight' ) );
-			add_filter( 'the_content', array( $this, 'filter_the_content_highlight' ) );
-			add_filter( 'get_the_excerpt', array( $this, 'filter_the_excerpt_highlight' ) );
-			/* phpcs:ignore Squiz.PHP.CommentedOutCode.Found
-			add_filter( 'post_link', array( $this, 'filter_post_link' ), 10, 2 );
-			*/
+			if ( isset( $this->options['markjs'] ) && $this->options['markjs'] ) {
+				add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_highlight_scripts' ) );
+			} else {
+				add_filter( 'the_title', array( $this, 'filter_the_title_highlight' ) );
+				add_filter( 'the_content', array( $this, 'filter_the_content_highlight' ) );
+				add_filter( 'get_the_excerpt', array( $this, 'filter_the_excerpt_highlight' ) );
+			}
 		}
 	}
 
@@ -449,7 +450,8 @@ class Full_Text_Search {
 		 */
 		$data = apply_filters( 'full_text_search_index_post', $data, $post_ID, $post );
 
-		$wpdb->replace( $wpdb->prefix . 'full_text_search_posts', $data ); // WPCS: db call ok; no-cache ok.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->replace( $wpdb->prefix . 'full_text_search_posts', $data );
 
 		$status = $data['status'] ?? 4;
 		if ( 1 === $status ) {
@@ -501,6 +503,7 @@ class Full_Text_Search {
 					update_post_meta( $post_ID, self::CUSTOM_FIELD_NAME, $keywords );
 				}
 
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->query(
 					$wpdb->prepare(
 						"UPDATE {$wpdb->prefix}full_text_search_posts SET keywords = %s,status = %d WHERE ID = %d;",
@@ -508,7 +511,7 @@ class Full_Text_Search {
 						$status,
 						$post->ID
 					)
-				); // WPCS: db call ok; no-cache ok.
+				);
 			}
 		}
 	}
@@ -550,10 +553,9 @@ class Full_Text_Search {
 	 *
 	 * @param int     $attachment_id     Attachment ID.
 	 * @param WP_Post $attachment_after  Attachment post object before the update.
-	 * @param WP_Post $attachment_before Attachment post object after the update.
 	 * @return void
 	 */
-	public function update_attachment( $attachment_id, $attachment_after, $attachment_before ) {
+	public function update_attachment( $attachment_id, $attachment_after ) {
 		$this->update_post( $attachment_id, $attachment_after, true );
 	}
 
@@ -568,7 +570,8 @@ class Full_Text_Search {
 	public function delete_post( $post_id ) {
 		global $wpdb;
 
-		$wpdb->delete( $wpdb->prefix . 'full_text_search_posts', array( 'ID' => $post_id ) ); // WPCS: db call ok; no-cache ok.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->delete( $wpdb->prefix . 'full_text_search_posts', array( 'ID' => $post_id ) );
 	}
 
 	/**
@@ -598,6 +601,7 @@ class Full_Text_Search {
 			'auto_powerpoint'       => true,
 			'display_score'         => true,
 			'highlight'             => true,
+			'markjs'                => false,
 			'search_result_content' => 'excerpt', // 'excerpt' or 'content'
 			'search_shortcode'      => false,
 			'search_block'          => false,
@@ -673,14 +677,16 @@ class Full_Text_Search {
 	 *
 	 * @throws Exception The file fails to load.
 	 *
-	 * @param string $file    Path to the file.
-	 * @param string $newline Newline characters. Default is \n.
+	 * @param string $file Path to the file.
 	 * @return string text string.
 	 */
-	public function get_text_from_pdf_file( $file, $newline = "\n" ) {
+	public function get_text_from_pdf_file( $file ) {
 		if ( ! isset( $this->pdfparser ) ) {
 			$config = new Smalot\PdfParser\Config();
 			$config->setRetainImageContent( false );
+			if ( function_exists( $config->setIgnoreEncryption() ) ) {
+				$config->setIgnoreEncryption( true );
+			}
 			$this->pdfparser = new \Smalot\PdfParser\Parser( array(), $config );
 		}
 		$pdffile = $this->pdfparser->parseFile( $file );
@@ -852,7 +858,7 @@ class Full_Text_Search {
 					}
 					$text .= $newline;
 				}
-				$i++;
+				++$i;
 			}
 
 			$i = 1;
@@ -866,7 +872,7 @@ class Full_Text_Search {
 					}
 					$text .= $newline;
 				}
-				$i++;
+				++$i;
 			}
 
 			$text = trim( $text );
@@ -993,6 +999,91 @@ class Full_Text_Search {
 	}
 
 	/**
+	 * Enqueues highlight scripts for this search page.
+	 *
+	 * @since 2.14.0
+	 *
+	 * @return void
+	 */
+	public function enqueue_highlight_scripts() {
+		if ( is_search() ) {
+			$min = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+			wp_enqueue_script( 'markjs', plugins_url( "/assets/js/mark{$min}.js", __FILE__ ), array(), FULL_TEXT_SEARCH_VERSION, true );
+			wp_add_inline_script( 'markjs', $this->get_script_mark() );
+		}
+	}
+
+	/**
+	 * Get JavaScript for highlighting.
+	 *
+	 * @since 2.14.0
+	 *
+	 * @return string
+	 */
+	private function get_script_mark() {
+		$selectors = array( 'article', '.hentry', '.wp-block-query', 'main', '#content', '#main' );
+
+		/**
+		 * Filter the content selector to highlight.
+		 *
+		 * @since 2.14.0
+		 *
+		 * @param array $selectors Selectors.
+		 */
+		$selectors = (array) apply_filters( 'full_text_search_highlight_selectors', $selectors );
+
+		$keywords = $this->get_search_keywords( get_search_query() );
+
+		// Mixing of multi-byte characters and single-byte characters is not considered.
+		if ( function_exists( 'mb_convert_kana' ) ) {
+			$a = array();
+			foreach ( $keywords as $keyword ) {
+				$a[] = $keyword;
+				$han = mb_convert_kana( $keyword, 'a' );
+				if ( $keyword !== $han ) {
+					$a[] = $han;
+				}
+				$zen = mb_convert_kana( $keyword, 'A' );
+				if ( $keyword !== $zen ) {
+					$a[] = $zen;
+				}
+			}
+			$keywords = $a;
+		}
+
+		$selectors = wp_json_encode( $selectors );
+		$keywords  = wp_json_encode( $keywords );
+
+		$script = <<< SCRIPT
+fullTextSearchHighlight = function() {
+	const keywords = {$keywords}, selectors = {$selectors};
+	for (let selector in selectors) {
+		let context = document.querySelectorAll(selectors[selector]);
+		if (context.length) {
+			for (let i = 0; i < context.length; i++) {
+				for (let keyword in keywords ) {
+					var mark = new Mark(context[i]);
+					mark.mark(keywords[keyword], {
+						"element": "mark",
+						"className": "fts",
+						"separateWordSearch": false,
+						"iframes": false,
+						"exclude": ["script", "style", "input", "textarea"],
+					});
+				}
+			}
+			break;
+		}
+	}
+	if (typeof Cufon=="function") Cufon.refresh();
+}
+window.addEventListener('DOMContentLoaded', fullTextSearchHighlight);
+SCRIPT;
+
+		return $script;
+	}
+
+	/**
 	 * Get keywords from a search string.
 	 *
 	 * @since 2.9.0
@@ -1033,12 +1124,10 @@ class Full_Text_Search {
 				}
 				$a[] = $w;
 				$w   = '';
+			} elseif ( '"' === $s ) {
+				$in = ! $in;
 			} else {
-				if ( '"' === $s ) {
-					$in = ! $in;
-				} else {
-					$w .= $s;
-				}
+				$w .= $s;
 			}
 		}
 		return $a;
@@ -1103,10 +1192,8 @@ class Full_Text_Search {
 						array_shift( $inside_block );
 					}
 				}
-			} else {
-				if ( empty( $inside_block ) ) {
-					$element = preg_replace( $pattern, '<mark class="fts">$1</mark>', $element );
-				}
+			} elseif ( empty( $inside_block ) ) {
+				$element = preg_replace( $pattern, '<mark class="fts">$1</mark>', $element );
 			}
 		}
 
@@ -1127,12 +1214,6 @@ class Full_Text_Search {
 			if ( 'title' === $type || ( isset( $this->options['search_result_content'] ) && $type === $this->options['search_result_content'] ) ) {
 				$html = $this->get_highlight_html( $html, get_search_query( false ) );
 			}
-			/**
-			 * Highlighting a link destination.
-			 * } elseif ( isset( $_GET['highlight'] ) ) {
-			 *     $html = $this->get_highlight_html( $html, sanitize_text_field( wp_unslash( $_GET['highlight'] ) ) );
-			 * }
-			 */
 		}
 		return $html;
 	}
@@ -1171,22 +1252,6 @@ class Full_Text_Search {
 	 */
 	public function filter_the_excerpt_highlight( $post_excerpt ) {
 		return $this->filter_highlight( $post_excerpt, 'excerpt' );
-	}
-
-	/**
-	 * Filters the permalink for a post.
-	 *
-	 * @since 2.11.0
-	 *
-	 * @param string  $permalink Post permalink.
-	 * @param WP_Post $post      Post.
-	 * @return string|false Post permalink. False if the post does not exist.
-	 */
-	public function filter_post_link( $permalink, $post ) {
-		if ( is_search() && in_the_loop() && is_main_query() ) {
-			$permalink = add_query_arg( 'highlight', rawurlencode( get_search_query( false ) ), $permalink );
-		}
-		return $permalink;
 	}
 
 	/**

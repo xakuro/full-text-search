@@ -8,24 +8,24 @@
     "packages": [
         {
             "name": "automattic/jetpack-autoloader",
-            "version": "v2.11.21",
+            "version": "v2.12.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Automattic/jetpack-autoloader.git",
-                "reference": "3a01a4a4ac166eaa721438cc06daa3cca0d51a15"
+                "reference": "632b69cfc73ed5505f2b03165e7f68d414d0da12"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Automattic/jetpack-autoloader/zipball/3a01a4a4ac166eaa721438cc06daa3cca0d51a15",
-                "reference": "3a01a4a4ac166eaa721438cc06daa3cca0d51a15",
+                "url": "https://api.github.com/repos/Automattic/jetpack-autoloader/zipball/632b69cfc73ed5505f2b03165e7f68d414d0da12",
+                "reference": "632b69cfc73ed5505f2b03165e7f68d414d0da12",
                 "shasum": ""
             },
             "require": {
                 "composer-plugin-api": "^1.1 || ^2.0"
             },
             "require-dev": {
-                "automattic/jetpack-changelogger": "^3.3.4",
-                "yoast/phpunit-polyfills": "1.0.4"
+                "automattic/jetpack-changelogger": "^3.3.11",
+                "yoast/phpunit-polyfills": "1.1.0"
             },
             "type": "composer-plugin",
             "extra": {
@@ -35,8 +35,11 @@
                 "changelogger": {
                     "link-template": "https://github.com/Automattic/jetpack-autoloader/compare/v${old}...v${new}"
                 },
+                "version-constants": {
+                    "::VERSION": "src/AutoloadGenerator.php"
+                },
                 "branch-alias": {
-                    "dev-trunk": "2.11.x-dev"
+                    "dev-trunk": "2.12.x-dev"
                 }
             },
             "autoload": {
@@ -61,9 +64,9 @@
                 "wordpress"
             ],
             "support": {
-                "source": "https://github.com/Automattic/jetpack-autoloader/tree/v2.11.21"
+                "source": "https://github.com/Automattic/jetpack-autoloader/tree/v2.12.0"
             },
-            "time": "2023-05-22T14:27:35+00:00"
+            "time": "2023-09-28T18:33:34+00:00"
         },
         {
             "name": "smalot/pdfparser",
@@ -118,16 +121,16 @@
         },
         {
             "name": "symfony/polyfill-mbstring",
-            "version": "v1.27.0",
+            "version": "v1.28.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/polyfill-mbstring.git",
-                "reference": "8ad114f6b39e2c98a8b0e3bd907732c207c2b534"
+                "reference": "42292d99c55abe617799667f454222c54c60e229"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/8ad114f6b39e2c98a8b0e3bd907732c207c2b534",
-                "reference": "8ad114f6b39e2c98a8b0e3bd907732c207c2b534",
+                "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/42292d99c55abe617799667f454222c54c60e229",
+                "reference": "42292d99c55abe617799667f454222c54c60e229",
                 "shasum": ""
             },
             "require": {
@@ -142,7 +145,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-main": "1.27-dev"
+                    "dev-main": "1.28-dev"
                 },
                 "thanks": {
                     "name": "symfony/polyfill",
@@ -181,7 +184,7 @@
                 "shim"
             ],
             "support": {
-                "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.27.0"
+                "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.28.0"
             },
             "funding": [
                 {
@@ -197,7 +200,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2022-11-03T14:55:06+00:00"
+            "time": "2023-07-28T09:04:16+00:00"
         }
     ],
     "packages-dev": [],
@@ -208,5 +211,5 @@
     "prefer-lowest": false,
     "platform": [],
     "platform-dev": [],
-    "plugin-api-version": "2.3.0"
+    "plugin-api-version": "2.6.0"
 }

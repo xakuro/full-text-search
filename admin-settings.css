@@ -1,14 +1,15 @@
 /*
 Full-Text Search Settings page.
 */
-#enable-attachment ul {
-	margin-left: 1.5rem;
-}
-
 #search-target ul,
 #enable-auto-text ul,
 #display_search_result ul {
 	margin: 0;
+}
+
+#enable-attachment ul,
+#display_search_result ul ul {
+	margin-left: 1.5rem;
 }
 
 #enable-attachment li,

@@ -79,18 +79,26 @@ var fullTextSearchSettings;
 	};
 
 	fullTextSearchSettings = function() {
-		var section = $('#enable-attachment'),
-			filter = section.find('input:radio[value="filter"]'),
-			filterCheckboxs = section.find('input:checkbox'),
-			check_disabled = function() { 
-				filterCheckboxs.prop('disabled', ! filter.prop('checked'));
+		var attachment = $('#enable-attachment'),
+			attachment_filter = attachment.find('input:radio[value="filter"]'),
+			attachment_checkboxs = attachment.find('input:checkbox'),
+			change_attachment = function() { 
+				attachment_checkboxs.prop('disabled', ! attachment_filter.prop('checked'));
 			};
-		check_disabled();
-		section.find('input:radio').on('change', check_disabled);
+		var highlight = $('#highlight'),
+			highlight_markjs = $('#markjs'),
+			cahnge_highlight = function() {
+				highlight_markjs.prop('disabled', ! highlight.prop('checked'));
+			};
+
+		change_attachment();
+		attachment.find('input:radio').on('change', change_attachment);
+
+		cahnge_highlight();
+		highlight.on('change', cahnge_highlight);
 	};
 
 	$(document).ready(function() {
-		//fullTextSearchProgression();
 		fullTextSearchMaintenance();
 		fullTextSearchSettings();
 	});
