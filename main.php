@@ -684,7 +684,7 @@ class Full_Text_Search {
 		if ( ! isset( $this->pdfparser ) ) {
 			$config = new Smalot\PdfParser\Config();
 			$config->setRetainImageContent( false );
-			if ( function_exists( $config->setIgnoreEncryption() ) ) {
+			if ( method_exists( $config, 'setIgnoreEncryption' ) ) {
 				$config->setIgnoreEncryption( true );
 			}
 			$this->pdfparser = new \Smalot\PdfParser\Parser( array(), $config );
