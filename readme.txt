@@ -4,7 +4,7 @@ Tags: full-text search,full-text,search,fulltext,mroonga
 Requires at least: 5.5
 Tested up to: 6.5
 Requires PHP: 7.2
-Stable tag: 2.14.3
+Stable tag: 2.14.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,10 @@ Mroonga engine is strongly recommended. InnoDB engine performs significantly wor
 4. Attachment details screen.
 
 == Changelog ==
+
+= 2.14.4 =
+
+* Fixed compatibility issues with other plugins.
 
 = 2.14.3 =
 

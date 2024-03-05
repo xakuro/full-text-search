@@ -1301,30 +1301,26 @@ SCRIPT;
 	public function activation() {
 		global $wp_version, $wpdb;
 
-		switch ( get_class( $wpdb ) ) {
-			case 'wpdb':
-				$db_server_info = $wpdb->db_server_info();
+		if ( ! empty( $wpdb->is_mysql ) ) {
+			$db_server_info = $wpdb->db_server_info();
 
-				if ( stristr( $db_server_info, 'mariadb' ) ) {
-					$db_type = 'mariadb';
-				} else {
-					$db_type = 'mysql';
+			if ( stristr( $db_server_info, 'mariadb' ) ) {
+				$db_type = 'mariadb';
+			} else {
+				$db_type = 'mysql';
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$enable_mroonga = $wpdb->get_var( "SELECT COUNT(*) FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='Mroonga'" );
+
+			if ( $enable_mroonga ) {
+				$engine = 'mroonga';
+			} else {
+				$db_version = $wpdb->get_var( 'SELECT VERSION()' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				if ( 'mysql' === $db_type && version_compare( '5.6', $db_version, '<=' ) ) {
+					$engine = 'innodb';
 				}
-
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$enable_mroonga = $wpdb->get_var( "SELECT COUNT(*) FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='Mroonga'" );
-
-				if ( $enable_mroonga ) {
-					$engine = 'mroonga';
-				} else {
-					$db_version = $wpdb->get_var( 'SELECT VERSION()' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-					if ( 'mysql' === $db_type && version_compare( '5.6', $db_version, '<=' ) ) {
-						$engine = 'innodb';
-					}
-				}
-				break;
-			case 'Perflab_SQLite_DB':
-				break;
+			}
 		}
 
 		if ( ! isset( $engine ) ) {
