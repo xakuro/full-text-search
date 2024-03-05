@@ -928,7 +928,7 @@ class Full_Text_Search {
 		$rows = $wpdb->get_results(
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				'SELECT SQL_CALC_FOUND_ROWS t1.ID, t1.post_type, t1.post_mime_type, t1.post_modified, t1.post_title, t1.post_content, t1.post_excerpt, m.meta_value AS keywords ' .
+				'SELECT t1.ID, t1.post_type, t1.post_mime_type, t1.post_modified, t1.post_title, t1.post_content, t1.post_excerpt, m.meta_value AS keywords ' .
 				"FROM {$wpdb->posts} AS t1 LEFT OUTER JOIN {$wpdb->prefix}full_text_search_posts AS t2 ON (t1.ID = t2.ID) " .
 				"LEFT JOIN {$wpdb->postmeta} AS m ON t1.ID = m.post_id AND m.meta_key = %s " .
 				"WHERE (t2.ID IS NULL OR t1.post_modified > t2.post_modified) AND t1.post_type IN ({$sql_posts}) AND t1.post_status <> 'auto-draft' LIMIT %d;",
@@ -938,13 +938,11 @@ class Full_Text_Search {
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		);
 
-		$found_rows = (int) $wpdb->get_var( 'SELECT FOUND_ROWS()' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
 		foreach ( $rows as $row ) {
 			$this->update_index_post( $row->ID, $row, $row->keywords );
 		}
 
-		if ( 0 < $found_rows ) {
+		if ( count( (array) $rows ) === $limit ) {
 			if ( ! wp_get_schedule( 'full_text_search_event' ) ) {
 				wp_schedule_single_event( time() + 1, 'full_text_search_event' );
 			}
