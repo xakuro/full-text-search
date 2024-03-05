@@ -1,2 +1,2 @@
 # Full-Text Search
-WordPress full-text search plugin.
+Full-text search plugin for WordPress.
