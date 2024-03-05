@@ -1,10 +1,10 @@
 === Full-Text Search ===
 Contributors: ishitaka
-Tags: full-text,search,fulltext,mroonga
+Tags: full-text search,full-text,search,fulltext,mroonga
 Requires at least: 5.5
-Tested up to: 6.4
+Tested up to: 6.5
 Requires PHP: 7.2
-Stable tag: 2.14.2
+Stable tag: 2.14.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,11 @@ Mroonga engine is strongly recommended. InnoDB engine performs significantly wor
 
 == Changelog ==
 
+= 2.14.3 =
+
+* Supported WordPress version 6.5 and MySQL version 8.3.
+* Updated PDF Parser library to 2.9.0.
+
 = 2.14.2 =
 
 * Updated PDF Parser library to 2.8.0.
@@ -92,52 +97,6 @@ Mroonga engine is strongly recommended. InnoDB engine performs significantly wor
 * Updated PDF Parser library to 2.4.0.
 * Code refactoring to meet WordPress PHP Coding Standards.
 
-= 2.11.0 =
+--------
 
-* Changed not to use mark.js.
-* Code refactoring.
-
-= 2.10.2 =
-
-* Changed to remove control characters in text extracted from PDF.
-* Adjusted the target tags for highlighting search keywords.
-
-= 2.10.0 =
-
-* Added option to search the contents of shortcodes.
-* Added option to search the contents of reusable blocks.
-* Added option to search HTML tags.
-* Updated PDF Parser library to 2.3.0.
-
-= 2.9.4 =
-
-* Updated PDF Parser library to 2.2.2.
-* Added full_text_search_pdf_text filter.
-
-= 2.9.3 =
-
-* Changed default setting values.
-* Added escaping to multiple translate texts for enhanced security.
-
-= 2.9.2 =
-
-* Changed full-text search to exclude_from_search posts only.
-* Fixed a bug that the text of attachments were not extracted when regenerating indexes.
-
-= 2.9.0 =
-
-* Added the ability to highlight search keywords on the search results page.
-* Optimized SQL.
-
-= 2.8.1 =
-
-* Added a function to delete the search text of attachments.
-
-= 2.8.0 =
-
-* Improved performance.
-* Changed to remove control characters such as spaces and line breaks from automatically extracted text in PDF.
-
-= 1.0.0 =
-
-* Initial release.
+[See the previous changelogs here](https://xakuro.com/wordpress/full-text-search/#changelog)
