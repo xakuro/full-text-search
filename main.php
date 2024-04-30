@@ -789,8 +789,6 @@ class Full_Text_Search {
 		$text = preg_replace( '/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
 		$text = trim( $text );
 
-		$text = preg_replace( '/[[:cntrl:]]/', '', $text );
-
 		return $text;
 	}
 
