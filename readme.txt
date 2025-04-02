@@ -2,9 +2,9 @@
 Contributors: ishitaka
 Tags: full-text search,full-text,search,fulltext,mroonga
 Requires at least: 5.5
-Tested up to: 6.6
+Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 2.14.6
+Stable tag: 2.14.7
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,11 @@ Mroonga engine is strongly recommended. InnoDB engine performs significantly wor
 4. Attachment details screen.
 
 == Changelog ==
+
+= 2.14.7 =
+
+* Supported WordPress version 6.7.
+* Updated PDF Parser library to 2.12.0.
 
 = 2.14.6 =
 

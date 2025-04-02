@@ -10,7 +10,7 @@
  * Plugin Name:       Full-Text Search
  * Plugin URI:        https://xakuro.com/wordpress/
  * Description:       Replaces site search with full-text search.
- * Version:           2.14.6
+ * Version:           2.14.7
  * Requires at least: 5.5
  * Requires PHP:      7.2
  * Author:            Xakuro
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'FULL_TEXT_SEARCH_VERSION', '2.14.6' );
+define( 'FULL_TEXT_SEARCH_VERSION', '2.14.7' );
 
 require_once __DIR__ . '/main.php';
 
